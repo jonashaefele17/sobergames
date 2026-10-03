@@ -1,10 +1,9 @@
-import type { Game, GameResult, Player, Scene, State, Team } from '../store/types'
+import { GAMES, isKnownGame } from '../games/catalog'
+import type { Game, GameResult, Play, Player, QuizView, Scene, State, Team } from '../store/types'
 
 export const TEAM_COLORS = ['#ef5350', '#42a5f5', '#34c98a', '#ab7dff', '#ff9140', '#f062a6']
 
 const uid = () => Math.random().toString(36).slice(2, 10)
-
-const pad = (n: number) => String(n).padStart(2, '0')
 
 function makeTeams(count: number, previous: Team[] = [], newId: (i: number) => string = uid): Team[] {
   return Array.from({ length: count }, (_, i) => ({
@@ -15,19 +14,15 @@ function makeTeams(count: number, previous: Team[] = [], newId: (i: number) => s
   }))
 }
 
-function makeGames(count: number, previous: Game[] = [], newId: (i: number) => string = uid): Game[] {
-  return Array.from(
-    { length: count },
-    (_, i) =>
-      previous[i] ?? {
-        id: newId(i),
-        name: `Game ${pad(i + 1)}`,
-        category: '',
-        revealed: false,
-        result: null,
-      },
-  )
-}
+const freshGame = (id: string): Game => ({ id, revealed: false, result: null })
+
+const DEFAULT_TIMER_MS = 25 * 60 * 1000
+
+const freshPlay = (durationMs = DEFAULT_TIMER_MS): Play => ({
+  gameId: null,
+  quiz: null,
+  timer: { durationMs, startedAt: null, elapsedMs: 0 },
+})
 
 export function initialState(): State {
   return {
@@ -37,12 +32,13 @@ export function initialState(): State {
     teams: makeTeams(3, [], (i) => `team-${i + 1}`),
     wheel: { spinId: 0, targetPlayerId: null },
     scoring: { placePoints: [3, 2, 1], finaleFactor: 3 },
-    games: makeGames(13, [], (i) => `game-${i + 1}`),
+    games: GAMES.map((d) => freshGame(d.id)),
     adjustments: [],
     spotlight: { nonce: 0, gameId: null },
     introNonce: 0,
     showTicker: true,
     showRaceHints: true,
+    play: freshPlay(),
   }
 }
 
@@ -53,39 +49,24 @@ export function normalize(raw: Partial<State> | null | undefined): State {
   const base = initialState()
   if (!raw) return base
   const scoring = Array.isArray(raw.scoring?.placePoints) ? raw.scoring : base.scoring
-  const games = (raw.games ?? base.games).map((g): Game => {
-    const r = g.result as LegacyResult
-    return {
-      id: g.id,
-      name: g.name,
-      category: g.category ?? '',
-      revealed: Boolean(g.revealed),
-      link: g.link,
-      result: r ? { places: r.places ?? [r.first ?? [], r.second ?? []] } : null,
-    }
-  })
-  return { ...base, ...raw, scoring, games }
+  // feste Spiele: gespeicherte Reihenfolge behalten, Unbekanntes verwerfen, Fehlendes hinten ergänzen
+  const stored = (raw.games ?? []).filter((g) => isKnownGame(g.id))
+  const missing = GAMES.filter((d) => !stored.some((g) => g.id === d.id)).map((d) => freshGame(d.id))
+  const games = [
+    ...stored.map((g): Game => {
+      const r = g.result as LegacyResult
+      return {
+        id: g.id,
+        revealed: Boolean(g.revealed),
+        result: r ? { places: r.places ?? [r.first ?? [], r.second ?? []] } : null,
+        ...(g.variant ? { variant: g.variant } : {}),
+      }
+    }),
+    ...missing,
+  ]
+  const play = { ...base.play, ...raw.play, timer: { ...base.play.timer, ...raw.play?.timer } }
+  return { ...base, ...raw, scoring, games, play }
 }
-
-/** Die 16 Ideen aus dem Games-Katalog als Vorlage. */
-export const CATALOGUE: { name: string; category: string }[] = [
-  { name: 'Mein Team kann…', category: 'Allgemeines' },
-  { name: 'Wer würde eher?', category: 'Soziales' },
-  { name: 'Allgemeinwissen – Buzzer', category: 'Wissen' },
-  { name: 'Allgemeinwissen – Rapidfire', category: 'Wissen' },
-  { name: 'Wer wird Millionär?', category: 'Wissen' },
-  { name: 'Last Cup Standing', category: 'Geschicklichkeit' },
-  { name: 'Closest to the Edge', category: 'Geschicklichkeit' },
-  { name: 'Guess the Location', category: 'Wissen' },
-  { name: 'Scribble Rush', category: 'Kreativität' },
-  { name: 'Schätzfragen', category: 'Wissen' },
-  { name: 'Perfect Cut', category: 'Geschicklichkeit' },
-  { name: 'Songs erraten', category: 'Wissen' },
-  { name: 'Build it', category: 'Geschicklichkeit' },
-  { name: 'Assoziationen', category: 'Soziales' },
-  { name: 'Higher Lower', category: 'Wissen' },
-  { name: 'Preise raten', category: 'Wissen' },
-]
 
 // ---------- Szene ----------
 
@@ -195,14 +176,9 @@ export const clearAssignment = (s: State): State => ({
 
 // ---------- Spiele & Wertung ----------
 
-export const setGameCount = (count: number) => (s: State): State => ({
+export const setVariant = (id: string, variant: string) => (s: State): State => ({
   ...s,
-  games: makeGames(count, s.games),
-})
-
-export const updateGame = (id: string, patch: Partial<Omit<Game, 'id'>>) => (s: State): State => ({
-  ...s,
-  games: s.games.map((g) => (g.id === id ? { ...g, ...patch } : g)),
+  games: s.games.map((g) => (g.id === id ? { ...g, variant } : g)),
 })
 
 /**
@@ -220,11 +196,6 @@ export const shiftGame = (id: string, dir: -1 | 1) => (s: State): State => {
   ;[games[from], games[to]] = [games[to], games[from]]
   return { ...s, games }
 }
-
-export const loadCatalogue = (s: State): State => ({
-  ...s,
-  games: s.games.map((g, i) => (CATALOGUE[i] ? { ...g, ...CATALOGUE[i] } : g)),
-})
 
 export const updateScoring = (patch: Partial<State['scoring']>) => (s: State): State => ({
   ...s,
@@ -289,6 +260,7 @@ export const resetScoresAndTeams = (s: State): State => clearAssignment(resetSco
 /** Alles auf Anfang; Zähler laufen weiter, damit keine Show eine alte Animation abspielt. */
 export const resetAll = (s: State): State => ({
   ...initialState(),
+  play: freshPlay(s.play.timer.durationMs),
   wheel: { spinId: s.wheel.spinId, targetPlayerId: null },
   spotlight: { nonce: s.spotlight.nonce, gameId: null },
   introNonce: s.introNonce,
@@ -304,3 +276,56 @@ export const setResultFromScores = (gameId: string, scores: Record<string, numbe
   const places = distinct.map((value) => s.teams.filter((t) => (scores[t.id] ?? 0) === value).map((t) => t.id))
   return { ...s, games: s.games.map((g) => (g.id === gameId ? { ...g, result: { places } } : g)) }
 }
+
+// ---------- Spiel mit eigener Seite (z. B. Buzzer-Quiz) ----------
+
+/** Startet ein Spiel auf der Spielseite: aufdecken, Szene wechseln, Timer bereitstellen. */
+export const startPlay = (gameId: string) => (s: State): State => ({
+  ...s,
+  scene: 'play',
+  games: s.games.map((g) => (g.id === gameId ? { ...g, revealed: true } : g)),
+  play: { ...freshPlay(s.play.timer.durationMs), gameId },
+})
+
+/** Zeigt eine Frage; Antwort und Zusatzinfo bleiben bis zur Auflösung geheim. */
+export const showQuestion = (view: Omit<QuizView, 'answer' | 'info' | 'phase'>) => (s: State): State => ({
+  ...s,
+  play: { ...s.play, quiz: { ...view, answer: null, info: null, phase: 'question' } },
+})
+
+export const revealAnswer = (answer: string, info: string | null) => (s: State): State =>
+  s.play.quiz ? { ...s, play: { ...s.play, quiz: { ...s.play.quiz, answer, info, phase: 'answer' } } } : s
+
+/** Beendet das Spiel: Rundenpunkte werden zur Platzierung, danach die Tabelle. */
+export const endPlay = (scores: Record<string, number>) => (s: State): State => {
+  const gameId = s.play.gameId
+  const withResult = gameId ? setResultFromScores(gameId, scores)(s) : s
+  return { ...withResult, scene: 'scoreboard', play: freshPlay(s.play.timer.durationMs) }
+}
+
+/** Spielseite ohne Wertung verlassen */
+export const leavePlay = (s: State): State => ({ ...s, scene: 'games', play: freshPlay(s.play.timer.durationMs) })
+
+// ---------- Timer (nur zur Orientierung des Hosts) ----------
+
+export function timerElapsed(t: Play['timer'], now: number): number {
+  return t.elapsedMs + (t.startedAt !== null ? Math.max(0, now - t.startedAt) : 0)
+}
+
+export const timerStart = (now: number) => (s: State): State =>
+  s.play.timer.startedAt !== null ? s : { ...s, play: { ...s.play, timer: { ...s.play.timer, startedAt: now } } }
+
+export const timerPause = (now: number) => (s: State): State =>
+  s.play.timer.startedAt === null
+    ? s
+    : { ...s, play: { ...s.play, timer: { ...s.play.timer, startedAt: null, elapsedMs: timerElapsed(s.play.timer, now) } } }
+
+export const timerReset = (s: State): State => ({
+  ...s,
+  play: { ...s.play, timer: { ...s.play.timer, startedAt: null, elapsedMs: 0 } },
+})
+
+export const timerSetDuration = (minutes: number) => (s: State): State => ({
+  ...s,
+  play: { ...s.play, timer: { ...s.play.timer, durationMs: Math.max(1, minutes) * 60 * 1000 } },
+})

@@ -1,4 +1,4 @@
-export type Scene = 'intro' | 'wheel' | 'teams' | 'games' | 'scoreboard' | 'winner'
+export type Scene = 'intro' | 'wheel' | 'teams' | 'games' | 'scoreboard' | 'winner' | 'play'
 
 export interface Player {
   id: string
@@ -17,13 +17,40 @@ export interface GameResult {
   places: string[][]
 }
 
+/** Ein Spiel des Abends; Name, Kategorie und Spielart stehen fest in src/games/catalog.ts. */
 export interface Game {
   id: string
-  name: string
-  category: string
   revealed: boolean
-  link?: string
   result: GameResult | null
+  /** gewählte Variante, z. B. Kippmoment statt Arschbolzen */
+  variant?: string
+}
+
+/** Was der Beamer von der aktuellen Quiz-Frage zeigt; Antwort erst nach der Auflösung. */
+export interface QuizView {
+  /** 0-basiert */
+  index: number
+  total: number
+  text: string
+  imageUrl: string | null
+  answer: string | null
+  info: string | null
+  phase: 'question' | 'answer'
+}
+
+/** Countdown nur zur Orientierung des Hosts; läuft über 0 hinaus weiter. */
+export interface Timer {
+  durationMs: number
+  /** Zeitpunkt (ms) des letzten Starts, null wenn pausiert */
+  startedAt: number | null
+  /** bis zur letzten Pause verstrichene Zeit */
+  elapsedMs: number
+}
+
+export interface Play {
+  gameId: string | null
+  quiz: QuizView | null
+  timer: Timer
 }
 
 export interface Scoring {
@@ -53,6 +80,7 @@ export interface State {
   introNonce: number
   showTicker: boolean
   showRaceHints: boolean
+  play: Play
 }
 
 export interface Snapshot {

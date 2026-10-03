@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { AnimatePresence } from 'motion/react'
+import { gameName } from '../games/catalog'
 import * as act from '../lib/actions'
 import { teamStyle } from '../lib/motion'
 import { gameStore } from '../store'
@@ -52,7 +53,7 @@ export function BuzzerPanel({ state }: { state: State }) {
   const takeOver = () => {
     const game = state.games.find((g) => g.id === gameId)
     if (!game) return
-    if (game.result && !confirm(`„${game.name}“ ist schon gewertet. Ergebnis überschreiben?`)) return
+    if (game.result && !confirm(`„${gameName(game)}“ ist schon gewertet. Ergebnis überschreiben?`)) return
     gameStore.update(act.setResultFromScores(game.id, buzzer.roundScores))
   }
 
@@ -135,7 +136,7 @@ export function BuzzerPanel({ state }: { state: State }) {
         <select className="grow" value={gameId} onChange={(e) => setTargetGame(e.target.value)}>
           {state.games.map((g, i) => (
             <option key={g.id} value={g.id}>
-              {pad(i + 1)} {g.name}
+              {pad(i + 1)} {gameName(g)}
               {g.result ? ' ✓' : ''}
             </option>
           ))}

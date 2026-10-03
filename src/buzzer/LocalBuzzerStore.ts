@@ -1,4 +1,4 @@
-import { applyBuzz, applyJudge, initialBuzzer, newToken, type BuzzerData, type BuzzerState, type BuzzerStore } from './types'
+import { applyBuzz, applyJudge, applyStartQuestion, initialBuzzer, newToken, type BuzzerData, type BuzzerState, type BuzzerStore } from './types'
 
 const STATE_KEY = 'sobergames-buzzer-v2'
 const TOKEN_KEY = 'sobergames-buzzer-tokens-v2'
@@ -94,8 +94,12 @@ class LocalBuzzerStore implements BuzzerStore {
     this.mutate((s) => (on ? { ...s, armed: true } : { ...s, armed: false, status: 'open', buzzedTeamId: null, buzzedAt: null }))
   }
 
-  judge(correct: boolean) {
-    this.mutate((s) => applyJudge(s, correct))
+  judge(correct: boolean, opts: { pause?: boolean } = {}) {
+    this.mutate((s) => applyJudge(s, correct, opts.pause))
+  }
+
+  startQuestion() {
+    this.mutate(applyStartQuestion)
   }
 
   release() {

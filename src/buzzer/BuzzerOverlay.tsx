@@ -12,7 +12,7 @@ const FX_MS = 1600
  * Buzzer auf dem Beamer: Rundenpunkte und Status unten, großes Banner beim
  * Buzz. Wie Rad und Aufdecken animiert es nur, was es live miterlebt.
  */
-export function BuzzerOverlay({ state, buzzer }: { state: State; buzzer: BuzzerState }) {
+export function BuzzerOverlay({ state, buzzer, pinned = false }: { state: State; buzzer: BuzzerState; pinned?: boolean }) {
   const [initialNonce] = useState(buzzer.lastJudgement?.nonce ?? 0)
   const [fxDone, setFxDone] = useState(0)
   const [initialBuzz] = useState(buzzer.buzzedAt)
@@ -41,7 +41,7 @@ export function BuzzerOverlay({ state, buzzer }: { state: State; buzzer: BuzzerS
   return (
     <>
       <AnimatePresence>
-        {buzzer.armed && (
+        {(buzzer.armed || pinned) && (
           <motion.div
             key="panel"
             className="buzzer-panel"
@@ -85,7 +85,8 @@ export function BuzzerOverlay({ state, buzzer }: { state: State; buzzer: BuzzerS
               })}
             </div>
             <div className="buzzer-status">
-              {buzzed ? 'Gebuzzert' : 'Buzzer frei'} · Frage {buzzer.question}
+              {!buzzer.armed ? 'Buzzer pausiert' : buzzed ? 'Gebuzzert' : 'Buzzer frei'}
+              {!pinned && ` · Frage ${buzzer.question}`}
             </div>
           </motion.div>
         )}

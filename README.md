@@ -21,6 +21,16 @@ Zum Proben vorher einfach durchspielen und danach unter **Reset → Punkte + Aus
 
 Taucht ein QR-Code beim falschen Team auf, erzeugt **Neuer Code** einen neuen, der alte funktioniert dann nicht mehr. Unter **Ohne Handys ausprobieren** gibt es einen Buzz-Knopf je Team.
 
+## Spiele
+
+Die 13 Spiele stehen fest in `src/games/catalog.ts`. Im Regiepult unter **Setup** lässt sich nur ihre Reihenfolge ändern; das letzte Spiel ist immer das Finale. Bei Arschbolzen gibt es dort den Umschalter auf die Schlechtwetter-Variante **Kippmoment**.
+
+Allgemeinwissen, Guess the Location und Songs erraten sind **Buzzer-Quiz**-Spiele mit eigener Spielseite:
+
+1. **Fragen pflegen:** Setup → beim Spiel **„Fragen bearbeiten“**. Eine Liste lässt sich einfügen: eine Zeile pro Frage, `Frage | Antwort | Zusatzinfo`, oder direkt aus Excel/Google Sheets kopiert (Spalten Frage, Antwort, Info). Danach einzeln bearbeiten, sortieren und optional ein Bild hinzufügen. Gespeichert wird automatisch, und nur mit Host-Login lesbar.
+2. **Spielen:** Spiele-Tab → **„Spiel starten“** → Tab **Spiel**. Dort laufen Timer (nur zur Orientierung, nach 0 geht es einfach weiter), aktuelle Frage mit Antwort, Richtig/Falsch, Auflösen und Nächste Frage.
+3. **Spiel beenden & werten:** Die Rundenpunkte werden zur Platzierung (3/2/1) in der Tabelle.
+
 ## Starten
 
 ```

@@ -7,6 +7,8 @@ import { GamesScene, ScoreboardScene, TeamsScene, WinnerScene } from './scenes/S
 import WheelScene from './scenes/Wheel'
 import { useBuzzer } from './buzzer'
 import { BuzzerOverlay } from './buzzer/BuzzerOverlay'
+import { gameDef } from './games/catalog'
+import { KINDS } from './games/registry'
 import { useGame } from './store'
 import type { State } from './store/types'
 
@@ -31,6 +33,11 @@ function SceneView({ state, buzzerOn }: { state: State; buzzerOn: boolean }) {
       return <ScoreboardScene state={state} />
     case 'winner':
       return <WinnerScene state={state} />
+    case 'play': {
+      const game = state.games.find((g) => g.id === state.play.gameId)
+      const Scene = game ? KINDS[gameDef(game.id).kind].Scene : undefined
+      return game && Scene ? <Scene state={state} game={game} /> : <GamesScene state={state} hideTicker={buzzerOn} />
+    }
   }
 }
 
@@ -38,6 +45,10 @@ function SceneView({ state, buzzerOn }: { state: State; buzzerOn: boolean }) {
 export default function Show() {
   const { ready, state } = useGame()
   const buzzer = useBuzzer().state
+  // auf der Spielseite eines Buzzer-Spiels bleibt der Rundenstand stehen, auch wenn der Buzzer kurz pausiert
+  const playKind = state.scene === 'play' && state.play.gameId ? gameDef(state.play.gameId).kind : null
+  const pinned = playKind === 'quiz'
+  const buzzerOn = buzzer.armed || pinned
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -52,23 +63,23 @@ export default function Show() {
   }, [])
 
   return (
-    <div className={`show${buzzer.armed ? ' buzzer-on' : ''}`}>
+    <div className={`show${buzzerOn ? ' buzzer-on' : ''}`}>
       <Backdrop />
       <AnimatePresence mode="wait">
         {ready && (
           <motion.div
-            key={state.scene === 'intro' ? `intro-${state.introNonce}` : state.scene}
+            key={state.scene === 'intro' ? `intro-${state.introNonce}` : state.scene === 'play' ? `play-${state.play.gameId}` : state.scene}
             style={{ position: 'absolute', inset: 0 }}
             initial={{ opacity: 0, scale: 1.03 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.98 }}
             transition={{ duration: 0.55, ease: EASE_OUT }}
           >
-            <SceneView state={state} buzzerOn={buzzer.armed} />
+            <SceneView state={state} buzzerOn={buzzerOn} />
           </motion.div>
         )}
       </AnimatePresence>
-      {ready && <BuzzerOverlay state={state} buzzer={buzzer} />}
+      {ready && <BuzzerOverlay state={state} buzzer={buzzer} pinned={pinned} />}
     </div>
   )
 }

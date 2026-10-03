@@ -183,6 +183,49 @@ grant execute on function public.sobergames_team(text) to anon, authenticated;
 grant execute on function public.sobergames_buzz(text) to anon, authenticated;
 
 -- ============================================================
+-- Inhalte der Quiz-Spiele (Allgemeinwissen, Guess the Location, …).
+-- Nur der Host darf sie lesen; auf den Beamer kommt nur die gerade gezeigte
+-- Frage über den öffentlichen Spielstand.
+-- ============================================================
+
+create table if not exists public.sobergames_questions (
+  id uuid primary key default gen_random_uuid(),
+  game_id text not null,
+  position int not null default 0,
+  question text not null default '',
+  answer text not null default '',
+  info text not null default '',
+  image_path text,
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists sobergames_questions_game on public.sobergames_questions (game_id, position);
+
+alter table public.sobergames_questions enable row level security;
+revoke all on public.sobergames_questions from anon;
+grant select, insert, update, delete on public.sobergames_questions to authenticated;
+
+drop policy if exists "host manages questions" on public.sobergames_questions;
+create policy "host manages questions"
+  on public.sobergames_questions for all
+  to authenticated
+  using (true)
+  with check (true);
+
+-- Bilder zu den Fragen: privater Bucket. Der Beamer bekommt erst beim Zeigen
+-- einer Frage eine zeitlich begrenzte Signed URL.
+insert into storage.buckets (id, name, public)
+values ('sobergames-media', 'sobergames-media', false)
+on conflict (id) do update set public = false;
+
+drop policy if exists "host manages media" on storage.objects;
+create policy "host manages media"
+  on storage.objects for all
+  to authenticated
+  using (bucket_id = 'sobergames-media')
+  with check (bucket_id = 'sobergames-media');
+
+-- ============================================================
 -- Realtime so projector, laptop and phones stay in sync.
 -- ============================================================
 

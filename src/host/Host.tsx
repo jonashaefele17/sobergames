@@ -6,7 +6,10 @@ import { signInHost, signOutHost, useHostSession } from '../lib/hostAuth'
 import { race } from '../lib/race'
 import { gamePoints, maxSwing, standings } from '../lib/scoring'
 import { SPRING, teamStyle } from '../lib/motion'
+import { buzzerStore } from '../buzzer'
 import { BuzzerPanel } from '../buzzer/BuzzerPanel'
+import { gameDef, gameName } from '../games/catalog'
+import { KINDS } from '../games/registry'
 import { gameStore, useGame } from '../store'
 import type { Game, Scene, State } from '../store/types'
 
@@ -213,7 +216,7 @@ function PlaceButtons({ game, place, points, state }: { game: Game; place: numbe
   )
 }
 
-function GamesPanel({ state }: { state: State }) {
+function GamesPanel({ state, onStart }: { state: State; onStart: (gameId: string) => void }) {
   const [adjTeam, setAdjTeam] = useState('')
   const [adjDelta, setAdjDelta] = useState(1)
   const [adjNote, setAdjNote] = useState('')
@@ -240,9 +243,14 @@ function GamesPanel({ state }: { state: State }) {
             <div className="row">
               <b className="num">{pad(i + 1)}</b>
               <span className="grow">
-                {game.name}
+                {gameName(game)}
                 {finale && <span className="tag">Finale ×{state.scoring.finaleFactor}</span>}
               </span>
+              {KINDS[gameDef(game.id).kind].Host && (
+                <button className={state.play.gameId === game.id ? 'on' : ''} onClick={() => onStart(game.id)}>
+                  {state.play.gameId === game.id ? 'Läuft' : 'Spiel starten'}
+                </button>
+              )}
               {game.revealed ? (
                 <button onClick={() => run(act.hideGame(game.id))}>Verdecken</button>
               ) : (
@@ -294,7 +302,7 @@ function GamesPanel({ state }: { state: State }) {
 
 // ---------- Setup ----------
 
-function SetupPanel({ state }: { state: State }) {
+function SetupPanel({ state, onEdit }: { state: State; onEdit: (gameId: string) => void }) {
   const [names, setNames] = useState('')
   const assigned = state.teams.some((t) => t.playerIds.length > 0)
 
@@ -377,31 +385,23 @@ function SetupPanel({ state }: { state: State }) {
       </p>
 
       <h2>Spiele</h2>
-      <div className="row">
-        <span className="grow">Anzahl Spiele</span>
-        <input
-          type="number"
-          className="short"
-          min={1}
-          max={24}
-          value={state.games.length}
-          onChange={(e) => {
-            const n = Math.min(24, Math.max(1, Number(e.target.value) || 1))
-            const loses = state.games.slice(n).some((g) => g.result)
-            if (!loses || confirm('Dabei gehen bereits gewertete Spiele verloren. Fortfahren?')) run(act.setGameCount(n))
-          }}
-        />
-        <button onClick={() => run(act.loadCatalogue)}>Katalog laden</button>
-      </div>
       <p className="hint">Mit ↑ / ↓ umsortieren. Das letzte Spiel ist immer das Finale. Gewertete Spiele bleiben fest.</p>
       {state.games.map((game, i) => {
+        const def = gameDef(game.id)
+        const kind = KINDS[def.kind]
         const locked = Boolean(game.result)
         const finale = i === state.games.length - 1
         return (
           <motion.div key={game.id} layout transition={SPRING} className={`game-row${finale ? ' finale' : ''}`}>
             <div className="row tight">
               <b className="num">{pad(i + 1)}</b>
-              <input className="grow" value={game.name} onChange={(e) => run(act.updateGame(game.id, { name: e.target.value }))} />
+              <span className="grow game-title">
+                {gameName(game)}
+                <small>
+                  {def.category}
+                  {def.kind !== 'plain' && ` · ${kind.label}`}
+                </small>
+              </span>
               {locked ? (
                 <span className="lock" title="Bereits gewertet">
                   🔒
@@ -417,16 +417,28 @@ function SetupPanel({ state }: { state: State }) {
                 </>
               )}
             </div>
-            <div className="row tight">
-              <span className="num" />
-              <input
-                className="grow"
-                placeholder="Kategorie"
-                value={game.category}
-                onChange={(e) => run(act.updateGame(game.id, { category: e.target.value }))}
-              />
-              {finale && <span className="tag">Finale ×{state.scoring.finaleFactor}</span>}
-            </div>
+            {(def.variants || kind.Editor || finale) && (
+              <div className="row tight">
+                <span className="num" />
+                {def.variants && (
+                  <div className="seg">
+                    {def.variants.map((v) => (
+                      <button
+                        key={v.key}
+                        className={(game.variant ?? def.variants![0].key) === v.key ? 'on' : ''}
+                        title={v.note}
+                        onClick={() => run(act.setVariant(game.id, v.key))}
+                      >
+                        {v.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {kind.Editor && <button onClick={() => onEdit(game.id)}>{kind.dataLabel ?? 'Daten'} bearbeiten</button>}
+                <span className="grow" />
+                {finale && <span className="tag">Finale ×{state.scoring.finaleFactor}</span>}
+              </div>
+            )}
           </motion.div>
         )
       })}
@@ -459,10 +471,11 @@ function ResetPanel() {
   )
 }
 
-type Tab = 'draw' | 'games' | 'buzzer' | 'setup' | 'reset'
+type Tab = 'draw' | 'games' | 'play' | 'buzzer' | 'setup' | 'reset'
 const TABS: [Tab, string][] = [
   ['draw', 'Auslosung'],
   ['games', 'Spiele'],
+  ['play', 'Spiel'],
   ['buzzer', 'Buzzer'],
   ['setup', 'Setup'],
   ['reset', 'Reset'],
@@ -473,9 +486,27 @@ export default function Host() {
   const session = useHostSession()
   const { ready, state, unsaved: snapshotUnsaved } = useGame()
   const [tab, setTab] = useState<Tab>('setup')
+  const [editing, setEditing] = useState<string | null>(null)
 
   if (session === 'loading' || !ready) return <div className="host">Lade…</div>
   if (session === null) return <Login />
+
+  const playing = state.games.find((g) => g.id === state.play.gameId)
+  const PlayHost = playing ? KINDS[gameDef(playing.id).kind].Host : undefined
+  const Editor = editing ? KINDS[gameDef(editing).kind].Editor : undefined
+  const tabs = TABS.filter(([key]) => key !== 'play' || playing)
+
+  const start = (gameId: string) => {
+    if (state.play.gameId !== gameId) {
+      if (state.play.gameId && !confirm('Es läuft schon ein Spiel. Trotzdem wechseln?')) return
+      run(act.startPlay(gameId))
+      buzzerStore.arm(false)
+      buzzerStore.resetRound()
+    } else {
+      run(act.setScene('play'))
+    }
+    setTab('play')
+  }
 
   return (
     <div className="host">
@@ -492,10 +523,13 @@ export default function Host() {
           </button>
         ))}
       </div>
+      {playing && state.scene !== 'play' && (
+        <button onClick={() => run(act.setScene('play'))}>Zurück zur Spielseite: {gameName(playing)}</button>
+      )}
       {state.scene === 'intro' && <button onClick={() => run(act.replayIntro)}>Logo-Intro neu abspielen</button>}
 
       <nav className="tabs">
-        {TABS.map(([key, label]) => (
+        {tabs.map(([key, label]) => (
           <button key={key} className={tab === key ? 'on' : ''} onClick={() => setTab(key)}>
             {label}
           </button>
@@ -503,9 +537,11 @@ export default function Host() {
       </nav>
 
       {tab === 'draw' && <DrawPanel state={state} />}
-      {tab === 'games' && <GamesPanel state={state} />}
+      {tab === 'games' && <GamesPanel state={state} onStart={start} />}
+      {tab === 'play' && (playing && PlayHost ? <PlayHost state={state} game={playing} /> : <p className="hint">Kein Spiel läuft.</p>)}
       {tab === 'buzzer' && <BuzzerPanel state={state} />}
-      {tab === 'setup' && <SetupPanel state={state} />}
+      {tab === 'setup' && <SetupPanel state={state} onEdit={setEditing} />}
+      {editing && Editor && <Editor gameId={editing} onClose={() => setEditing(null)} />}
       {tab === 'reset' && <ResetPanel />}
 
       <footer className="row">

@@ -115,7 +115,7 @@ describe('Altes Format', () => {
     const old = {
       ...act.initialState(),
       scoring: { mode: 'placement', preset: 'tiers', placeFirst: 3, placeSecond: 1 },
-      games: [{ id: 'g1', name: 'Alt', category: '', weight: 2, revealed: true, result: { first: ['x'], second: ['y'] } }],
+      games: [{ id: 'allgemeinwissen', name: 'Alt', category: '', weight: 2, revealed: true, result: { first: ['x'], second: ['y'] } }],
     } as unknown as State
     const s = act.normalize(old)
     expect(s.games[0].result).toEqual({ places: [['x'], ['y']] })

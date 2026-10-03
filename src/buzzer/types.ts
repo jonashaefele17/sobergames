@@ -50,7 +50,10 @@ export interface BuzzerStore {
 
   // Host
   arm(on: boolean): void
-  judge(correct: boolean): void
+  /** Richtig/Falsch; mit pause bleibt der Buzzer nach „Richtig“ aus (z. B. während die Antwort gezeigt wird) */
+  judge(correct: boolean, opts?: { pause?: boolean }): void
+  /** neue Frage: Buzzer scharf, frei für alle, Sperren aufgehoben */
+  startQuestion(): void
   release(): void
   nextQuestion(): void
   adjustRound(teamId: string, delta: number): void
@@ -84,13 +87,14 @@ export function applyBuzz(s: BuzzerState, teamId: string, at: string): BuzzerSta
 
 const nextNonce = (s: BuzzerState) => (s.lastJudgement?.nonce ?? 0) + 1
 
-export function applyJudge(s: BuzzerState, correct: boolean): BuzzerState | null {
+export function applyJudge(s: BuzzerState, correct: boolean, pause = false): BuzzerState | null {
   const teamId = s.buzzedTeamId
   if (s.status !== 'locked' || !teamId) return null
   const judgement = { nonce: nextNonce(s), teamId, correct }
   if (correct) {
     return {
       ...s,
+      armed: pause ? false : s.armed,
       status: 'open',
       buzzedTeamId: null,
       buzzedAt: null,
@@ -109,3 +113,12 @@ export function applyJudge(s: BuzzerState, correct: boolean): BuzzerState | null
     lastJudgement: judgement,
   }
 }
+
+export const applyStartQuestion = (s: BuzzerState): BuzzerState => ({
+  ...s,
+  armed: true,
+  status: 'open',
+  buzzedTeamId: null,
+  buzzedAt: null,
+  excludedTeamIds: [],
+})

@@ -1,6 +1,6 @@
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabaseClient'
-import { applyJudge, initialBuzzer, newToken, type BuzzerData, type BuzzerState, type BuzzerStore, type Judgement } from './types'
+import { applyJudge, applyStartQuestion, initialBuzzer, newToken, type BuzzerData, type BuzzerState, type BuzzerStore, type Judgement } from './types'
 
 const ROW_ID = 1
 const TABLE = 'sobergames_buzzer'
@@ -156,9 +156,13 @@ class SupabaseBuzzerStore implements BuzzerStore {
     void this.write((s) => (on ? { ...s, armed: true } : { ...s, armed: false, status: 'open', buzzedTeamId: null, buzzedAt: null }))
   }
 
-  judge(correct: boolean) {
+  judge(correct: boolean, opts: { pause?: boolean } = {}) {
     const teamId = this.data.state.buzzedTeamId
-    void this.write((s) => applyJudge(s, correct), { status: 'locked', buzzed_team_id: teamId })
+    void this.write((s) => applyJudge(s, correct, opts.pause), { status: 'locked', buzzed_team_id: teamId })
+  }
+
+  startQuestion() {
+    void this.write(applyStartQuestion)
   }
 
   release() {

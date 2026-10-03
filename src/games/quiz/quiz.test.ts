@@ -1,0 +1,109 @@
+import { describe, expect, it } from 'vitest'
+import { applyJudge, applyStartQuestion, initialBuzzer } from '../../buzzer/types'
+import * as act from '../../lib/actions'
+import type { State } from '../../store/types'
+import { GAMES, gameName } from '../catalog'
+import { parseQuestions } from './parse'
+
+describe('Feste Spiele', () => {
+  it('13 Spiele in der geplanten Reihenfolge, Allgemeinwissen auf Platz 9, Finale ist Mein Team kann', () => {
+    const ids = act.initialState().games.map((g) => g.id)
+    expect(ids).toHaveLength(13)
+    expect(ids.indexOf('allgemeinwissen')).toBe(8)
+    expect(ids[12]).toBe('mein-team-kann')
+    expect(new Set(ids).size).toBe(13)
+  })
+
+  it('normalize behält die Reihenfolge, verwirft Unbekanntes und ergänzt Fehlendes', () => {
+    const raw = {
+      games: [
+        { id: 'game-1', revealed: false, result: null },
+        { id: 'allgemeinwissen', revealed: true, result: null },
+        { id: 'last-cup-standing', revealed: false, result: { places: [['team-1']] } },
+      ],
+    } as unknown as Partial<State>
+    const s = act.normalize(raw)
+    expect(s.games.slice(0, 2).map((g) => g.id)).toEqual(['allgemeinwissen', 'last-cup-standing'])
+    expect(s.games).toHaveLength(GAMES.length)
+    expect(s.games[1].result?.places).toEqual([['team-1']])
+    expect(s.play.timer.durationMs).toBe(25 * 60 * 1000)
+  })
+
+  it('Variante umschalten ändert den Namen', () => {
+    let s = act.initialState()
+    const game = s.games.find((g) => g.id === 'arschbolzen')!
+    expect(gameName(game)).toBe('Arschbolzen')
+    s = act.setVariant('arschbolzen', 'kippmoment')(s)
+    expect(gameName(s.games.find((g) => g.id === 'arschbolzen')!)).toBe('Kippmoment')
+  })
+})
+
+describe('Liste einfügen', () => {
+  it('Tab, |, leere Zeilen, Kopfzeile und fehlende Antwort', () => {
+    const text = [
+      'Frage\tAntwort\tInfo',
+      'Hauptstadt von Frankreich?\tParis\tSeit 508',
+      '',
+      '  Wie viele Beine hat eine Spinne? | 8  ',
+      'Nur eine Frage ohne Antwort',
+      'A | B | C | D',
+    ].join('\n')
+    expect(parseQuestions(text)).toEqual([
+      { question: 'Hauptstadt von Frankreich?', answer: 'Paris', info: 'Seit 508' },
+      { question: 'Wie viele Beine hat eine Spinne?', answer: '8', info: '' },
+      { question: 'Nur eine Frage ohne Antwort', answer: '', info: '' },
+      { question: 'A', answer: 'B', info: 'C | D' },
+    ])
+  })
+})
+
+describe('Quiz-Ablauf', () => {
+  it('starten, Frage zeigen ohne Antwort, auflösen, beenden', () => {
+    let s = act.startPlay('allgemeinwissen')(act.initialState())
+    expect(s.scene).toBe('play')
+    expect(s.games.find((g) => g.id === 'allgemeinwissen')?.revealed).toBe(true)
+    expect(s.play.quiz).toBeNull()
+
+    s = act.showQuestion({ index: 0, total: 3, text: 'Frage?', imageUrl: null })(s)
+    expect(s.play.quiz).toMatchObject({ phase: 'question', answer: null, info: null })
+
+    s = act.revealAnswer('Antwort', 'Info')(s)
+    expect(s.play.quiz).toMatchObject({ phase: 'answer', answer: 'Antwort', info: 'Info' })
+
+    const [a, b, c] = s.teams.map((t) => t.id)
+    s = act.endPlay({ [a]: 5, [b]: 2, [c]: 5 })(s)
+    expect(s.scene).toBe('scoreboard')
+    expect(s.play.gameId).toBeNull()
+    expect(s.games.find((g) => g.id === 'allgemeinwissen')?.result?.places).toEqual([[a, c], [b]])
+  })
+
+  it('Antwort auflösen ohne gezeigte Frage ändert nichts', () => {
+    const s = act.initialState()
+    expect(act.revealAnswer('x', null)(s)).toBe(s)
+  })
+})
+
+describe('Timer', () => {
+  it('läuft, pausiert, setzt fort und darf überziehen', () => {
+    let s = act.timerSetDuration(1)(act.initialState())
+    s = act.timerStart(1000)(s)
+    expect(act.timerElapsed(s.play.timer, 31_000)).toBe(30_000)
+    s = act.timerPause(31_000)(s)
+    expect(act.timerElapsed(s.play.timer, 99_000)).toBe(30_000)
+    s = act.timerStart(100_000)(s)
+    // 30 s + 60 s = 90 s bei 60 s Dauer: 30 s überzogen, nichts wird gesperrt
+    expect(s.play.timer.durationMs - act.timerElapsed(s.play.timer, 160_000)).toBe(-30_000)
+    expect(act.timerStart(170_000)(s)).toBe(s)
+    expect(act.timerElapsed(act.timerReset(s).play.timer, 200_000)).toBe(0)
+  })
+})
+
+describe('Buzzer im Quiz', () => {
+  it('Richtig mit pause schaltet den Buzzer in einem Schritt aus, neue Frage schaltet ihn wieder an', () => {
+    const locked = { ...applyStartQuestion(initialBuzzer()), status: 'locked' as const, buzzedTeamId: 'a', excludedTeamIds: ['b'] }
+    const s = applyJudge(locked, true, true)!
+    expect(s).toMatchObject({ armed: false, status: 'open', roundScores: { a: 1 }, excludedTeamIds: [] })
+    expect(applyJudge(locked, false, true)).toMatchObject({ armed: true, excludedTeamIds: ['b', 'a'] })
+    expect(applyStartQuestion(s)).toMatchObject({ armed: true, status: 'open', buzzedTeamId: null, excludedTeamIds: [] })
+  })
+})

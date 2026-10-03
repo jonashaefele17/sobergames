@@ -133,6 +133,7 @@
   outline-offset: 2px;
 }
 
+.host .seg,
 .host .scenes,
 .host .tabs {
   display: flex;
@@ -434,4 +435,20 @@
 
 .host .probe .row {
   margin-top: 8px;
+}
+
+.host .game-title {
+  display: flex;
+  flex-direction: column;
+  font-weight: 600;
+}
+
+.host .game-title small {
+  font-weight: 400;
+}
+
+.host .seg button {
+  min-height: 38px;
+  padding: 6px 10px;
+  font-size: 14px;
 }
