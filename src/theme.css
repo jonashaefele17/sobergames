@@ -139,19 +139,6 @@ textarea {
   position: relative;
 }
 
-.test-band {
-  position: absolute;
-  top: calc(var(--u) * 1.6);
-  right: calc(var(--u) * -4.2);
-  transform: rotate(35deg);
-  padding: calc(var(--u) * 0.3) calc(var(--u) * 6);
-  background: rgba(var(--gold-rgb), 0.9);
-  color: var(--navy-deep);
-  font-size: calc(var(--u) * 1.4);
-  letter-spacing: 0.2em;
-  z-index: 50;
-  pointer-events: none;
-}
 
 /* ---------- Intro ---------- */
 

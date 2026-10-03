@@ -1,14 +1,9 @@
-import { initialState, normalize } from '../lib/actions'
-import type { GameStore, Mode, Snapshot, State } from './types'
+import { normalize } from '../lib/actions'
+import type { GameStore, Snapshot, State } from './types'
 
-const STORAGE_KEY = 'sobergames-local-v1'
-const CHANNEL_NAME = 'sobergames-sync-v1'
-
-interface Stored {
-  active: Mode
-  live: State
-  test: State
-}
+const STORAGE_KEY = 'sobergames-local-v2'
+const LEGACY_KEY = 'sobergames-local-v1'
+const CHANNEL_NAME = 'sobergames-sync-v2'
 
 /**
  * Local implementation of GameStore for development and as an offline fallback.
@@ -16,13 +11,13 @@ interface Stored {
  * so projector and host can be two windows on the same laptop.
  */
 class LocalStore implements GameStore {
-  private data: Stored
+  private state: State
   private snapshot: Snapshot
   private listeners = new Set<() => void>()
   private channel: BroadcastChannel | null = null
 
   constructor() {
-    this.data = this.load()
+    this.state = this.load()
     this.snapshot = this.toSnapshot()
 
     if (typeof BroadcastChannel !== 'undefined') {
@@ -36,35 +31,25 @@ class LocalStore implements GameStore {
     }
   }
 
-  private load(): Stored {
+  private load(): State {
     try {
       const raw = localStorage.getItem(STORAGE_KEY)
-      if (raw) {
-        const parsed = JSON.parse(raw) as Partial<Stored>
-        return {
-          active: parsed.active ?? 'live',
-          live: normalize(parsed.live),
-          test: normalize(parsed.test),
-        }
-      }
+      if (raw) return normalize(JSON.parse(raw) as Partial<State>)
+      // früheres Format mit Live- und Teststand: den Live-Stand übernehmen
+      const legacy = localStorage.getItem(LEGACY_KEY)
+      if (legacy) return normalize((JSON.parse(legacy) as { live?: Partial<State> }).live)
     } catch {
       // fall through to a fresh state
     }
-    return { active: 'live', live: initialState(), test: initialState() }
+    return normalize(null)
   }
 
   private toSnapshot(): Snapshot {
-    return { ready: true, unsaved: false, active: this.data.active, state: this.data[this.data.active], byMode: { live: this.data.live, test: this.data.test } }
+    return { ready: true, unsaved: false, state: this.state }
   }
 
   private reload() {
-    this.data = this.load()
-    this.notify()
-  }
-
-  private save() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data))
-    this.channel?.postMessage('update')
+    this.state = this.load()
     this.notify()
   }
 
@@ -83,14 +68,10 @@ class LocalStore implements GameStore {
   getSnapshot = () => this.snapshot
 
   update(fn: (state: State) => State) {
-    const mode = this.data.active
-    this.data = { ...this.data, [mode]: fn(this.data[mode]) }
-    this.save()
-  }
-
-  setActive(mode: Mode) {
-    this.data = { ...this.data, active: mode }
-    this.save()
+    this.state = fn(this.state)
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(this.state))
+    this.channel?.postMessage('update')
+    this.notify()
   }
 }
 

@@ -1,22 +1,12 @@
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabaseClient'
-import type { Mode } from '../store/types'
-import {
-  applyJudge,
-  initialBuzzer,
-  newToken,
-  type BuzzerData,
-  type BuzzerState,
-  type BuzzerStore,
-  type Judgement,
-  type TokenOwner,
-} from './types'
+import { applyJudge, initialBuzzer, newToken, type BuzzerData, type BuzzerState, type BuzzerStore, type Judgement } from './types'
 
+const ROW_ID = 1
 const TABLE = 'sobergames_buzzer'
 const TOKENS = 'sobergames_tokens'
 
 interface Row {
-  mode: Mode
   armed: boolean
   status: BuzzerState['status']
   buzzed_team_id: string | null
@@ -61,13 +51,7 @@ const stateToRow = (s: Partial<BuzzerState>): Partial<Row> => {
  * conditional on the team that is actually locked in.
  */
 class SupabaseBuzzerStore implements BuzzerStore {
-  private data: BuzzerData = {
-    ready: false,
-    unsaved: false,
-    live: initialBuzzer(),
-    test: initialBuzzer(),
-    connected: { live: [], test: [] },
-  }
+  private data: BuzzerData = { ready: false, unsaved: false, state: initialBuzzer(), connected: [] }
   private listeners = new Set<() => void>()
   private ownStamps = new Set<number>()
   private presence: RealtimeChannel | null = null
@@ -79,7 +63,11 @@ class SupabaseBuzzerStore implements BuzzerStore {
 
     supabase
       .channel('sobergames-buzzer-changes')
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: TABLE }, (payload) => this.applyRow(payload.new as Row))
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: TABLE, filter: `id=eq.${ROW_ID}` },
+        (payload) => this.applyRow(payload.new as Row),
+      )
       .subscribe()
 
     const presence = supabase.channel('sobergames-presence')
@@ -87,13 +75,11 @@ class SupabaseBuzzerStore implements BuzzerStore {
     this.presenceReady = new Promise((resolve) => {
       presence
         .on('presence', { event: 'sync' }, () => {
-          const connected: Record<Mode, string[]> = { live: [], test: [] }
-          for (const entries of Object.values(presence.presenceState<TokenOwner>())) {
-            for (const e of entries) {
-              if (!connected[e.mode].includes(e.teamId)) connected[e.mode].push(e.teamId)
-            }
+          const connected = new Set<string>()
+          for (const entries of Object.values(presence.presenceState<{ teamId: string }>())) {
+            for (const e of entries) connected.add(e.teamId)
           }
-          this.set({ connected })
+          this.set({ connected: [...connected] })
         })
         .subscribe((status) => {
           if (status === 'SUBSCRIBED') resolve()
@@ -110,19 +96,17 @@ class SupabaseBuzzerStore implements BuzzerStore {
   }
 
   private async load() {
-    const { data, error } = await supabase!.from(TABLE).select('*')
+    const { data, error } = await supabase!.from(TABLE).select('*').eq('id', ROW_ID).single()
     if (error || !data) {
       console.error('Failed to load buzzer from Supabase', error)
       return
     }
-    const next: Partial<BuzzerData> = { ready: true }
-    for (const row of data as Row[]) next[row.mode] = rowToState(row)
-    this.set(next)
+    this.set({ ready: true, state: rowToState(data as Row) })
   }
 
   private applyRow(row: Row) {
     if (this.ownStamps.has(Date.parse(row.updated_at))) return
-    this.set({ [row.mode]: rowToState(row) })
+    this.set({ state: rowToState(row) })
   }
 
   private set(patch: Partial<BuzzerData>) {
@@ -131,22 +115,22 @@ class SupabaseBuzzerStore implements BuzzerStore {
   }
 
   /** Lokal sofort anwenden, dann nur die geänderten Spalten schreiben. */
-  private async write(mode: Mode, fn: (s: BuzzerState) => BuzzerState | null, conditions: Record<string, unknown> = {}) {
+  private async write(fn: (s: BuzzerState) => BuzzerState | null, conditions: Record<string, unknown> = {}) {
     if (!supabase) return
-    const before = this.data[mode]
+    const before = this.data.state
     const next = fn(before)
     if (!next) return
     const changed = Object.fromEntries(
       Object.entries(next).filter(([k, v]) => JSON.stringify(v) !== JSON.stringify(before[k as keyof BuzzerState])),
     ) as Partial<BuzzerState>
-    this.set({ [mode]: next })
+    this.set({ state: next })
 
     const stamp = new Date()
     this.ownStamps.add(stamp.getTime())
     let query = supabase
       .from(TABLE)
       .update({ ...stateToRow(changed), updated_at: stamp.toISOString() })
-      .eq('mode', mode)
+      .eq('id', ROW_ID)
     for (const [key, value] of Object.entries(conditions)) query = query.eq(key, value)
     const { error } = await query
     if (error) {
@@ -168,23 +152,21 @@ class SupabaseBuzzerStore implements BuzzerStore {
 
   getSnapshot = () => this.data
 
-  arm(mode: Mode, on: boolean) {
-    void this.write(mode, (s) =>
-      on ? { ...s, armed: true } : { ...s, armed: false, status: 'open', buzzedTeamId: null, buzzedAt: null },
-    )
+  arm(on: boolean) {
+    void this.write((s) => (on ? { ...s, armed: true } : { ...s, armed: false, status: 'open', buzzedTeamId: null, buzzedAt: null }))
   }
 
-  judge(mode: Mode, correct: boolean) {
-    const teamId = this.data[mode].buzzedTeamId
-    void this.write(mode, (s) => applyJudge(s, correct), { status: 'locked', buzzed_team_id: teamId })
+  judge(correct: boolean) {
+    const teamId = this.data.state.buzzedTeamId
+    void this.write((s) => applyJudge(s, correct), { status: 'locked', buzzed_team_id: teamId })
   }
 
-  release(mode: Mode) {
-    void this.write(mode, (s) => ({ ...s, status: 'open', buzzedTeamId: null, buzzedAt: null }))
+  release() {
+    void this.write((s) => ({ ...s, status: 'open', buzzedTeamId: null, buzzedAt: null }))
   }
 
-  nextQuestion(mode: Mode) {
-    void this.write(mode, (s) => ({
+  nextQuestion() {
+    void this.write((s) => ({
       ...s,
       status: 'open',
       buzzedTeamId: null,
@@ -194,21 +176,21 @@ class SupabaseBuzzerStore implements BuzzerStore {
     }))
   }
 
-  adjustRound(mode: Mode, teamId: string, delta: number) {
-    void this.write(mode, (s) => ({ ...s, roundScores: { ...s.roundScores, [teamId]: (s.roundScores[teamId] ?? 0) + delta } }))
+  adjustRound(teamId: string, delta: number) {
+    void this.write((s) => ({ ...s, roundScores: { ...s.roundScores, [teamId]: (s.roundScores[teamId] ?? 0) + delta } }))
   }
 
-  resetRound(mode: Mode) {
-    void this.write(mode, (s) => ({ ...initialBuzzer(), armed: s.armed, lastJudgement: s.lastJudgement }))
+  resetRound() {
+    void this.write((s) => ({ ...initialBuzzer(), armed: s.armed, lastJudgement: s.lastJudgement }))
   }
 
-  async ensureTokens(mode: Mode, teamIds: string[]) {
+  async ensureTokens(teamIds: string[]) {
     if (!supabase) return {}
-    const { data, error } = await supabase.from(TOKENS).select('token, team_id').eq('mode', mode)
+    const { data, error } = await supabase.from(TOKENS).select('token, team_id')
     if (error) throw error
     const out: Record<string, string> = {}
     for (const row of data as { token: string; team_id: string }[]) out[row.team_id] = row.token
-    const missing = teamIds.filter((id) => !out[id]).map((teamId) => ({ token: newToken(), mode, team_id: teamId }))
+    const missing = teamIds.filter((id) => !out[id]).map((teamId) => ({ token: newToken(), team_id: teamId }))
     if (missing.length) {
       const { error: insertError } = await supabase.from(TOKENS).insert(missing)
       if (insertError) throw insertError
@@ -217,12 +199,12 @@ class SupabaseBuzzerStore implements BuzzerStore {
     return out
   }
 
-  async regenerateToken(mode: Mode, teamId: string) {
+  async regenerateToken(teamId: string) {
     if (!supabase) return ''
-    const { error } = await supabase.from(TOKENS).delete().eq('mode', mode).eq('team_id', teamId)
+    const { error } = await supabase.from(TOKENS).delete().eq('team_id', teamId)
     if (error) throw error
     const token = newToken()
-    const { error: insertError } = await supabase.from(TOKENS).insert({ token, mode, team_id: teamId })
+    const { error: insertError } = await supabase.from(TOKENS).insert({ token, team_id: teamId })
     if (insertError) throw insertError
     return token
   }
@@ -230,9 +212,8 @@ class SupabaseBuzzerStore implements BuzzerStore {
   async resolveToken(token: string) {
     if (!supabase) return null
     const { data, error } = await supabase.rpc('sobergames_team', { p_token: token })
-    const row = (data as { mode: Mode; team_id: string }[] | null)?.[0]
-    if (error || !row) return null
-    return { mode: row.mode, teamId: row.team_id }
+    if (error || typeof data !== 'string') return null
+    return data
   }
 
   async buzz(token: string) {
@@ -242,10 +223,10 @@ class SupabaseBuzzerStore implements BuzzerStore {
     return data === true
   }
 
-  connect(owner: TokenOwner) {
+  connect(teamId: string) {
     let active = true
     void this.presenceReady.then(() => {
-      if (active) void this.presence?.track(owner)
+      if (active) void this.presence?.track({ teamId })
     })
     return () => {
       active = false

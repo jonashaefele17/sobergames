@@ -4,13 +4,12 @@ import './buzzer.css'
 import { SPRING, teamStyle } from '../lib/motion'
 import { useGame } from '../store'
 import { buzzerStore, useBuzzer } from '.'
-import type { TokenOwner } from './types'
 
 type View = 'waiting' | 'ready' | 'ours' | 'theirs' | 'excluded'
 
 /** Buzzer-Handy eines Teams, geöffnet über den QR-Code `#/buzz/<code>`. */
 export default function TeamPhone({ token }: { token: string }) {
-  const [owner, setOwner] = useState<TokenOwner | null | undefined>(undefined)
+  const [teamId, setTeamId] = useState<string | null | undefined>(undefined)
   const game = useGame()
   const data = useBuzzer()
   const [pressedAt, setPressedAt] = useState<number | null>(null)
@@ -19,8 +18,8 @@ export default function TeamPhone({ token }: { token: string }) {
 
   useEffect(() => {
     let cancelled = false
-    void buzzerStore.resolveToken(token).then((o) => {
-      if (!cancelled) setOwner(o)
+    void buzzerStore.resolveToken(token).then((id) => {
+      if (!cancelled) setTeamId(id)
     })
     return () => {
       cancelled = true
@@ -28,9 +27,9 @@ export default function TeamPhone({ token }: { token: string }) {
   }, [token])
 
   useEffect(() => {
-    if (!owner) return
-    return buzzerStore.connect(owner)
-  }, [owner])
+    if (!teamId) return
+    return buzzerStore.connect(teamId)
+  }, [teamId])
 
   // Bildschirm anlassen; nach dem Zurückkehren in den Tab neu anfordern
   useEffect(() => {
@@ -49,12 +48,12 @@ export default function TeamPhone({ token }: { token: string }) {
     }
   }
 
-  const buzzer = owner ? data[owner.mode] : null
-  const state = owner ? game.byMode[owner.mode] : null
-  const team = state?.teams.find((t) => t.id === owner?.teamId)
+  const buzzer = data.state
+  const state = game.state
+  const team = state.teams.find((t) => t.id === teamId)
 
   let view: View = 'waiting'
-  if (buzzer && team) {
+  if (team) {
     if (!buzzer.armed) view = 'waiting'
     else if (buzzer.status === 'locked') view = buzzer.buzzedTeamId === team.id ? 'ours' : 'theirs'
     else if (buzzer.excludedTeamIds.includes(team.id)) view = 'excluded'
@@ -63,18 +62,18 @@ export default function TeamPhone({ token }: { token: string }) {
 
   // kurzes Vibrieren, wenn wir die Ersten waren
   useEffect(() => {
-    if (view !== 'ours' || !buzzer?.buzzedAt || vibratedFor.current === buzzer.buzzedAt) return
+    if (view !== 'ours' || !buzzer.buzzedAt || vibratedFor.current === buzzer.buzzedAt) return
     vibratedFor.current = buzzer.buzzedAt
     navigator.vibrate?.([80, 40, 160])
-  }, [view, buzzer?.buzzedAt])
+  }, [view, buzzer.buzzedAt])
 
-  if (owner === undefined || !game.ready || (owner && !data.ready)) {
+  if (teamId === undefined || !game.ready || (teamId && !data.ready)) {
     return <div className="phone phone-message">Verbinde…</div>
   }
-  if (owner === null) {
+  if (teamId === null) {
     return <div className="phone phone-message">Code ungültig – frag den Host nach einem neuen QR-Code</div>
   }
-  if (!team || !buzzer || !state) {
+  if (!team) {
     return <div className="phone phone-message">Dieses Team gibt es nicht mehr – frag den Host nach einem neuen QR-Code</div>
   }
 

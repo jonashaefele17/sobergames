@@ -1,5 +1,4 @@
 export type Scene = 'intro' | 'wheel' | 'teams' | 'games' | 'scoreboard' | 'winner'
-export type Mode = 'live' | 'test'
 
 export interface Player {
   id: string
@@ -60,15 +59,11 @@ export interface Snapshot {
   ready: boolean
   /** true, solange ein Schreibvorgang ans Backend fehlgeschlagen ist und noch wiederholt wird */
   unsaved: boolean
-  active: Mode
   state: State
-  /** beide Stände, z. B. für Team-Handys, deren Code zu einem bestimmten Modus gehört */
-  byMode: Record<Mode, State>
 }
 
 export interface GameStore {
   subscribe(listener: () => void): () => void
   getSnapshot(): Snapshot
   update(fn: (state: State) => State): void
-  setActive(mode: Mode): void
 }

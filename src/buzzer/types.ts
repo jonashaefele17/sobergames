@@ -1,5 +1,3 @@
-import type { Mode } from '../store/types'
-
 export type BuzzerStatus = 'open' | 'locked'
 
 export interface Judgement {
@@ -25,15 +23,9 @@ export interface BuzzerData {
   ready: boolean
   /** true, solange ein Schreibvorgang ans Backend fehlgeschlagen ist und noch wiederholt wird */
   unsaved: boolean
-  live: BuzzerState
-  test: BuzzerState
+  state: BuzzerState
   /** Team-IDs, deren Handy gerade verbunden ist */
-  connected: Record<Mode, string[]>
-}
-
-export interface TokenOwner {
-  mode: Mode
-  teamId: string
+  connected: string[]
 }
 
 export const initialBuzzer = (): BuzzerState => ({
@@ -49,30 +41,31 @@ export const initialBuzzer = (): BuzzerState => ({
 
 /**
  * Backend-agnostic buzzer API (same split as the Buzzer repo: local for dev,
- * Supabase in production). Host actions act on one mode; team phones only
- * ever call buzz() with their secret code.
+ * Supabase in production). Team phones only ever call buzz() with their
+ * secret code; everything else is a host action.
  */
 export interface BuzzerStore {
   subscribe(listener: () => void): () => void
   getSnapshot(): BuzzerData
 
   // Host
-  arm(mode: Mode, on: boolean): void
-  judge(mode: Mode, correct: boolean): void
-  release(mode: Mode): void
-  nextQuestion(mode: Mode): void
-  adjustRound(mode: Mode, teamId: string, delta: number): void
-  resetRound(mode: Mode): void
+  arm(on: boolean): void
+  judge(correct: boolean): void
+  release(): void
+  nextQuestion(): void
+  adjustRound(teamId: string, delta: number): void
+  resetRound(): void
   /** Codes aller Teams; fehlende werden angelegt */
-  ensureTokens(mode: Mode, teamIds: string[]): Promise<Record<string, string>>
+  ensureTokens(teamIds: string[]): Promise<Record<string, string>>
   /** neuer Code für ein Team, der alte wird ungültig */
-  regenerateToken(mode: Mode, teamId: string): Promise<string>
+  regenerateToken(teamId: string): Promise<string>
 
   // Team-Handy
-  resolveToken(token: string): Promise<TokenOwner | null>
+  /** Team-ID zu einem Code, null wenn ungültig */
+  resolveToken(token: string): Promise<string | null>
   buzz(token: string): Promise<boolean>
   /** meldet ein Handy als verbunden an; Rückgabe meldet es wieder ab */
-  connect(owner: TokenOwner): () => void
+  connect(teamId: string): () => void
 }
 
 /** 10 Zeichen ohne verwechselbare Zeichen (0/O, 1/l/I) */

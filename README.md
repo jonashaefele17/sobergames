@@ -10,7 +10,7 @@ Webseite, die durch den Abend führt: Logo-Intro, Teamauslosung per Glücksrad, 
 | `/#/host` | **Regiepult** für Laptop und Handy: Szene wählen, Rad drehen, Spiele aufdecken, Punkte vergeben, Buzzer, Setup, Reset |
 | `/#/buzz/<code>` | **Buzzer** eines Teams. Wird nur über den QR-Code aus dem Regiepult geöffnet |
 
-Oben im Regiepult lässt sich zwischen **Live** und **Testlauf** umschalten. Beide haben einen eigenen Spielstand und eigene Buzzer-Codes, Probeläufe berühren den echten Abend nicht.
+Zum Proben vorher einfach durchspielen und danach unter **Reset → Punkte + Auslosung zurücksetzen** aufräumen: Spieler, Teamnamen und die Spieleliste bleiben erhalten.
 
 ## Buzzer
 
@@ -19,7 +19,7 @@ Oben im Regiepult lässt sich zwischen **Live** und **Testlauf** umschalten. Bei
 3. **Richtig** gibt +1 Rundenpunkt und startet die nächste Frage. **Falsch** sperrt das Team für diese Frage, die anderen dürfen wieder.
 4. Am Ende **Ergebnis übernehmen**: Die Rundenpunkte werden als Platzierung in das gewählte Spiel geschrieben.
 
-Taucht ein QR-Code beim falschen Team auf, erzeugt **Neuer Code** einen neuen, der alte funktioniert dann nicht mehr. Im Testlauf gibt es zusätzlich einen **Buzz**-Knopf je Team zum Ausprobieren.
+Taucht ein QR-Code beim falschen Team auf, erzeugt **Neuer Code** einen neuen, der alte funktioniert dann nicht mehr. Unter **Ohne Handys ausprobieren** gibt es einen Buzz-Knopf je Team.
 
 ## Starten
 

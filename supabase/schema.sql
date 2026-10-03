@@ -1,21 +1,31 @@
--- Run this once in the SQL Editor of the Sober Games Supabase project
--- (Dashboard -> SQL Editor -> New query). Safe to run again after changes.
+-- Run this in the SQL Editor of the Sober Games Supabase project
+-- (Dashboard -> SQL Editor -> New query). Safe to run again after changes:
+-- existing data is kept.
 
 -- ============================================================
--- Spielstand
--- Single-row table: `live` holds the real evening, `test` holds dry runs, and
--- `active` says which of the two every screen currently shows.
+-- Spielstand: eine Zeile mit dem kompletten Stand des Abends.
 -- ============================================================
 
 create table if not exists public.sobergames (
   id smallint primary key default 1,
-  active text not null default 'live',
-  live jsonb,
-  test jsonb,
+  state jsonb,
   updated_at timestamptz not null default now(),
-  constraint sobergames_single_row check (id = 1),
-  constraint sobergames_active check (active in ('live', 'test'))
+  constraint sobergames_single_row check (id = 1)
 );
+
+alter table public.sobergames add column if not exists state jsonb;
+
+-- Umstieg vom früheren Format mit getrenntem Live- und Teststand
+do $$
+begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'sobergames' and column_name = 'live'
+  ) then
+    update public.sobergames set state = coalesce(state, live);
+    alter table public.sobergames drop column if exists live, drop column if exists test, drop column if exists active;
+  end if;
+end $$;
 
 insert into public.sobergames (id) values (1)
 on conflict (id) do nothing;
@@ -43,13 +53,23 @@ create policy "host can update sobergames"
   with check (true);
 
 -- ============================================================
--- Buzzer
--- One row per mode. Team phones never write here directly: they only call
+-- Buzzer: eine Zeile. Team phones never write here directly: they only call
 -- sobergames_buzz() with their secret team code (see sobergames_tokens).
 -- ============================================================
 
+-- Umstieg: die frühere Tabelle hatte eine Zeile je Modus und keine Daten, die man behalten müsste
+do $$
+begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'sobergames_buzzer' and column_name = 'mode'
+  ) then
+    drop table public.sobergames_buzzer;
+  end if;
+end $$;
+
 create table if not exists public.sobergames_buzzer (
-  mode text primary key,
+  id smallint primary key default 1,
   armed boolean not null default false,
   status text not null default 'open',
   buzzed_team_id text,
@@ -59,12 +79,12 @@ create table if not exists public.sobergames_buzzer (
   round_scores jsonb not null default '{}',
   last_judgement jsonb,
   updated_at timestamptz not null default now(),
-  constraint sobergames_buzzer_mode check (mode in ('live', 'test')),
+  constraint sobergames_buzzer_single_row check (id = 1),
   constraint sobergames_buzzer_status check (status in ('open', 'locked'))
 );
 
-insert into public.sobergames_buzzer (mode) values ('live'), ('test')
-on conflict (mode) do nothing;
+insert into public.sobergames_buzzer (id) values (1)
+on conflict (id) do nothing;
 
 alter table public.sobergames_buzzer enable row level security;
 
@@ -85,15 +105,25 @@ create policy "host can update buzzer"
   using (true)
   with check (true);
 
--- Secret code per team and mode. Only the host can see or change these; the
--- QR code a team scans contains its code, so nobody can buzz for another team.
+-- Secret code per team. Only the host can see or change these; the QR code a
+-- team scans contains its code, so nobody can buzz for another team.
 create table if not exists public.sobergames_tokens (
   token text primary key,
-  mode text not null,
   team_id text not null,
-  created_at timestamptz not null default now(),
-  constraint sobergames_tokens_mode check (mode in ('live', 'test'))
+  created_at timestamptz not null default now()
 );
+
+-- Umstieg: Codes des früheren Teststands verwerfen, Spalte `mode` entfernen
+do $$
+begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'sobergames_tokens' and column_name = 'mode'
+  ) then
+    delete from public.sobergames_tokens where mode <> 'live';
+    alter table public.sobergames_tokens drop column mode;
+  end if;
+end $$;
 
 alter table public.sobergames_tokens enable row level security;
 revoke all on public.sobergames_tokens from anon;
@@ -107,14 +137,15 @@ create policy "host manages tokens"
   with check (true);
 
 -- Which team does this code belong to? (lets a phone show its team name)
-create or replace function public.sobergames_team(p_token text)
-returns table (mode text, team_id text)
+drop function if exists public.sobergames_team(text);
+create function public.sobergames_team(p_token text)
+returns text
 language sql
 stable
 security definer
 set search_path = public
 as $$
-  select t.mode, t.team_id from public.sobergames_tokens t where t.token = p_token;
+  select t.team_id from public.sobergames_tokens t where t.token = p_token;
 $$;
 
 -- The buzz itself: one conditional UPDATE, so simultaneous presses can never
@@ -126,18 +157,17 @@ security definer
 set search_path = public
 as $$
 declare
-  v_mode text;
   v_team text;
   v_rows int;
 begin
-  select t.mode, t.team_id into v_mode, v_team from public.sobergames_tokens t where t.token = p_token;
+  select t.team_id into v_team from public.sobergames_tokens t where t.token = p_token;
   if v_team is null then
     return false;
   end if;
 
   update public.sobergames_buzzer
      set status = 'locked', buzzed_team_id = v_team, buzzed_at = now(), updated_at = now()
-   where mode = v_mode
+   where id = 1
      and armed
      and status = 'open'
      and not (excluded_team_ids ? v_team);

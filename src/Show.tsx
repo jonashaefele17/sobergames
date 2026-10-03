@@ -36,8 +36,8 @@ function SceneView({ state, buzzerOn }: { state: State; buzzerOn: boolean }) {
 
 /** Beamer-Ansicht: zeigt nur, was der Host vorgibt. F = Vollbild, S = Ton an/aus. */
 export default function Show() {
-  const { ready, active, state } = useGame()
-  const buzzer = useBuzzer()[active]
+  const { ready, state } = useGame()
+  const buzzer = useBuzzer().state
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -68,8 +68,7 @@ export default function Show() {
           </motion.div>
         )}
       </AnimatePresence>
-      {ready && <BuzzerOverlay key={active} state={state} buzzer={buzzer} />}
-      {active === 'test' && <div className="test-band">Testlauf</div>}
+      {ready && <BuzzerOverlay state={state} buzzer={buzzer} />}
     </div>
   )
 }

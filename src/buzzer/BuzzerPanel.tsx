@@ -3,17 +3,17 @@ import { AnimatePresence } from 'motion/react'
 import * as act from '../lib/actions'
 import { teamStyle } from '../lib/motion'
 import { gameStore } from '../store'
-import type { Mode, State } from '../store/types'
+import type { State } from '../store/types'
 import { buzzerStore, useBuzzer } from '.'
 import { QrOverlay } from './QrOverlay'
 
 const pad = (n: number) => String(n).padStart(2, '0')
 
 /** Regiepult-Tab: Team-Handys verteilen, Buzzer steuern, Rundenpunkte übernehmen. */
-export function BuzzerPanel({ state, mode }: { state: State; mode: Mode }) {
+export function BuzzerPanel({ state }: { state: State }) {
   const data = useBuzzer()
-  const buzzer = data[mode]
-  const connected = data.connected[mode]
+  const buzzer = data.state
+  const connected = data.connected
   const [tokens, setTokens] = useState<Record<string, string>>({})
   const [tokenError, setTokenError] = useState<string | null>(null)
   const [qrTeamId, setQrTeamId] = useState<string | null>(null)
@@ -23,7 +23,7 @@ export function BuzzerPanel({ state, mode }: { state: State; mode: Mode }) {
   useEffect(() => {
     let cancelled = false
     buzzerStore
-      .ensureTokens(mode, teamIds.split('|').filter(Boolean))
+      .ensureTokens(teamIds.split('|').filter(Boolean))
       .then((t) => {
         if (cancelled) return
         setTokens(t)
@@ -35,7 +35,7 @@ export function BuzzerPanel({ state, mode }: { state: State; mode: Mode }) {
     return () => {
       cancelled = true
     }
-  }, [mode, teamIds])
+  }, [teamIds])
 
   const team = (id: string | null) => state.teams.find((t) => t.id === id)
   const buzzed = team(buzzer.buzzedTeamId)
@@ -44,7 +44,7 @@ export function BuzzerPanel({ state, mode }: { state: State; mode: Mode }) {
 
   const regenerate = async (teamId: string) => {
     if (!confirm('Neuen Code erzeugen? Der alte QR-Code funktioniert dann nicht mehr.')) return
-    const token = await buzzerStore.regenerateToken(mode, teamId)
+    const token = await buzzerStore.regenerateToken(teamId)
     setTokens((t) => ({ ...t, [teamId]: token }))
     setQrTeamId(teamId)
   }
@@ -71,16 +71,21 @@ export function BuzzerPanel({ state, mode }: { state: State; mode: Mode }) {
           <button disabled={!tokens[t.id]} onClick={() => void regenerate(t.id)}>
             Neuer Code
           </button>
-          {mode === 'test' && (
-            <button disabled={!tokens[t.id]} onClick={() => void buzzerStore.buzz(tokens[t.id])}>
-              Buzz
-            </button>
-          )}
         </div>
       ))}
+      <details className="probe">
+        <summary>Ohne Handys ausprobieren</summary>
+        <div className="row">
+          {state.teams.map((t) => (
+            <button key={t.id} style={teamStyle(t.color)} className="team-btn" disabled={!tokens[t.id]} onClick={() => void buzzerStore.buzz(tokens[t.id])}>
+              Buzz {t.name}
+            </button>
+          ))}
+        </div>
+      </details>
 
       <h2>Buzzer</h2>
-      <button className={`big${buzzer.armed ? '' : ' primary'}`} onClick={() => buzzerStore.arm(mode, !buzzer.armed)}>
+      <button className={`big${buzzer.armed ? '' : ' primary'}`} onClick={() => buzzerStore.arm(!buzzer.armed)}>
         {buzzer.armed ? 'Buzzer ausschalten' : 'Buzzer scharf schalten'}
       </button>
 
@@ -88,20 +93,20 @@ export function BuzzerPanel({ state, mode }: { state: State; mode: Mode }) {
         <div className="card buzz-status" style={buzzed ? teamStyle(buzzed.color) : undefined}>
           <div className="row">
             <span className="hint grow">Frage {buzzer.question}</span>
-            <button onClick={() => buzzerStore.nextQuestion(mode)}>Nächste Frage</button>
+            <button onClick={() => buzzerStore.nextQuestion()}>Nächste Frage</button>
           </div>
           {buzzed ? (
             <>
               <div className="buzzed-name">{buzzed.name}</div>
               <div className="row">
-                <button className="good big" onClick={() => buzzerStore.judge(mode, true)}>
+                <button className="good big" onClick={() => buzzerStore.judge(true)}>
                   Richtig
                 </button>
-                <button className="bad big" onClick={() => buzzerStore.judge(mode, false)}>
+                <button className="bad big" onClick={() => buzzerStore.judge(false)}>
                   Falsch
                 </button>
               </div>
-              <button onClick={() => buzzerStore.release(mode)}>Freigeben ohne Wertung</button>
+              <button onClick={() => buzzerStore.release()}>Freigeben ohne Wertung</button>
             </>
           ) : (
             <div className="buzzed-name idle">Frei – wartet auf Buzz</div>
@@ -117,11 +122,11 @@ export function BuzzerPanel({ state, mode }: { state: State; mode: Mode }) {
         <div key={t.id} className="row tight" style={teamStyle(t.color)}>
           <span className="dot" />
           <span className="grow">{t.name}</span>
-          <button className="arrow" onClick={() => buzzerStore.adjustRound(mode, t.id, -1)}>
+          <button className="arrow" onClick={() => buzzerStore.adjustRound(t.id, -1)}>
             −
           </button>
           <b className="round-score">{buzzer.roundScores[t.id] ?? 0}</b>
-          <button className="arrow" onClick={() => buzzerStore.adjustRound(mode, t.id, 1)}>
+          <button className="arrow" onClick={() => buzzerStore.adjustRound(t.id, 1)}>
             +
           </button>
         </div>
@@ -142,7 +147,7 @@ export function BuzzerPanel({ state, mode }: { state: State; mode: Mode }) {
       <p className="hint">Rangfolge nach Rundenpunkten, bei Gleichstand teilen sich Teams den Platz.</p>
       <button
         onClick={() => {
-          if (confirm('Rundenpunkte und Fragenzähler zurücksetzen?')) buzzerStore.resetRound(mode)
+          if (confirm('Rundenpunkte und Fragenzähler zurücksetzen?')) buzzerStore.resetRound()
         }}
       >
         Runde zurücksetzen

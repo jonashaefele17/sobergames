@@ -442,7 +442,7 @@ function ResetPanel() {
   }
   return (
     <section>
-      <p className="hint">Für Probeläufe oben auf „Testlauf“ schalten – der echte Abend bleibt dann unberührt.</p>
+      <p className="hint">Nach einer Probe „Punkte + Auslosung zurücksetzen“: Spieler, Teamnamen und Spieleliste bleiben erhalten.</p>
       <button onClick={ask('Alle Ergebnisse löschen und Spiele wieder verdecken?', act.resetScores)}>
         Punkte zurücksetzen
         <small>Ergebnisse und Aufdeckungen weg, Teams bleiben</small>
@@ -471,24 +471,16 @@ const TABS: [Tab, string][] = [
 /** Regiepult für Laptop und Handy. */
 export default function Host() {
   const session = useHostSession()
-  const { ready, active, state, unsaved: snapshotUnsaved } = useGame()
+  const { ready, state, unsaved: snapshotUnsaved } = useGame()
   const [tab, setTab] = useState<Tab>('setup')
 
   if (session === 'loading' || !ready) return <div className="host">Lade…</div>
   if (session === null) return <Login />
 
   return (
-    <div className={`host${active === 'test' ? ' test' : ''}`}>
+    <div className="host">
       <header className="row">
         <h1 className="grow">Regiepult</h1>
-        <div className="seg">
-          <button className={active === 'live' ? 'on' : ''} onClick={() => gameStore.setActive('live')}>
-            Live
-          </button>
-          <button className={active === 'test' ? 'on' : ''} onClick={() => gameStore.setActive('test')}>
-            Testlauf
-          </button>
-        </div>
       </header>
       {snapshotUnsaved && <p className="warn">Nicht gespeichert – keine Verbindung. Wird automatisch erneut versucht.</p>}
       {session === 'local' && <p className="hint">Lokaler Modus: Stand liegt nur in diesem Browser (keine Supabase-Zugangsdaten).</p>}
@@ -512,7 +504,7 @@ export default function Host() {
 
       {tab === 'draw' && <DrawPanel state={state} />}
       {tab === 'games' && <GamesPanel state={state} />}
-      {tab === 'buzzer' && <BuzzerPanel state={state} mode={active} />}
+      {tab === 'buzzer' && <BuzzerPanel state={state} />}
       {tab === 'setup' && <SetupPanel state={state} />}
       {tab === 'reset' && <ResetPanel />}
 

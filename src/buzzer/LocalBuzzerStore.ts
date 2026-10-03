@@ -1,23 +1,13 @@
-import type { Mode } from '../store/types'
-import {
-  applyBuzz,
-  applyJudge,
-  initialBuzzer,
-  newToken,
-  type BuzzerData,
-  type BuzzerState,
-  type BuzzerStore,
-  type TokenOwner,
-} from './types'
+import { applyBuzz, applyJudge, initialBuzzer, newToken, type BuzzerData, type BuzzerState, type BuzzerStore } from './types'
 
-const STATE_KEY = 'sobergames-buzzer-v1'
-const TOKEN_KEY = 'sobergames-buzzer-tokens-v1'
-const CHANNEL_NAME = 'sobergames-buzzer-sync-v1'
-const PRESENCE_CHANNEL = 'sobergames-buzzer-presence-v1'
+const STATE_KEY = 'sobergames-buzzer-v2'
+const TOKEN_KEY = 'sobergames-buzzer-tokens-v2'
+const CHANNEL_NAME = 'sobergames-buzzer-sync-v2'
+const PRESENCE_CHANNEL = 'sobergames-buzzer-presence-v2'
 const PRESENCE_TIMEOUT_MS = 5000
 
-type Rows = Record<Mode, BuzzerState>
-type Tokens = Record<string, TokenOwner>
+/** Code → Team-ID */
+type Tokens = Record<string, string>
 
 function read<T>(key: string, fallback: T): T {
   try {
@@ -41,17 +31,15 @@ class LocalBuzzerStore implements BuzzerStore {
   private lastSeen = new Map<string, number>()
 
   constructor() {
-    const rows = this.loadRows()
-    this.data = { ready: true, unsaved: false, ...rows, connected: { live: [], test: [] } }
+    this.data = { ready: true, unsaved: false, state: this.loadState(), connected: [] }
 
     if (typeof BroadcastChannel !== 'undefined') {
       this.channel = new BroadcastChannel(CHANNEL_NAME)
       this.channel.onmessage = () => this.reload()
       this.presence = new BroadcastChannel(PRESENCE_CHANNEL)
-      this.presence.onmessage = (e: MessageEvent<TokenOwner & { leave?: boolean }>) => {
-        const key = `${e.data.mode}:${e.data.teamId}`
-        if (e.data.leave) this.lastSeen.delete(key)
-        else this.lastSeen.set(key, Date.now())
+      this.presence.onmessage = (e: MessageEvent<{ teamId: string; leave?: boolean }>) => {
+        if (e.data.leave) this.lastSeen.delete(e.data.teamId)
+        else this.lastSeen.set(e.data.teamId, Date.now())
         this.updatePresence()
       }
       window.setInterval(() => this.updatePresence(), 2000)
@@ -61,26 +49,19 @@ class LocalBuzzerStore implements BuzzerStore {
     })
   }
 
-  private loadRows(): Rows {
-    const rows = read<Partial<Rows>>(STATE_KEY, {})
-    return { live: { ...initialBuzzer(), ...rows.live }, test: { ...initialBuzzer(), ...rows.test } }
+  private loadState(): BuzzerState {
+    return { ...initialBuzzer(), ...read<Partial<BuzzerState>>(STATE_KEY, {}) }
   }
 
   private reload() {
-    this.data = { ...this.data, ...this.loadRows() }
+    this.data = { ...this.data, state: this.loadState() }
     this.notify()
   }
 
   private updatePresence() {
     const now = Date.now()
-    const connected: Record<Mode, string[]> = { live: [], test: [] }
-    for (const [key, t] of this.lastSeen) {
-      if (now - t > PRESENCE_TIMEOUT_MS) continue
-      const [mode, teamId] = key.split(':') as [Mode, string]
-      connected[mode].push(teamId)
-    }
-    const same = (m: Mode) => connected[m].slice().sort().join() === this.data.connected[m].slice().sort().join()
-    if (same('live') && same('test')) return
+    const connected = [...this.lastSeen].filter(([, t]) => now - t <= PRESENCE_TIMEOUT_MS).map(([id]) => id)
+    if (connected.slice().sort().join() === this.data.connected.slice().sort().join()) return
     this.data = { ...this.data, connected }
     this.notify()
   }
@@ -90,13 +71,11 @@ class LocalBuzzerStore implements BuzzerStore {
   }
 
   /** frisch lesen, ändern, speichern – damit kein Tab einen veralteten Stand zurückschreibt */
-  private mutate(mode: Mode, fn: (s: BuzzerState) => BuzzerState | null): boolean {
-    const rows = this.loadRows()
-    const next = fn(rows[mode])
+  private mutate(fn: (s: BuzzerState) => BuzzerState | null): boolean {
+    const next = fn(this.loadState())
     if (!next) return false
-    const updated = { ...rows, [mode]: next }
-    localStorage.setItem(STATE_KEY, JSON.stringify(updated))
-    this.data = { ...this.data, ...updated }
+    localStorage.setItem(STATE_KEY, JSON.stringify(next))
+    this.data = { ...this.data, state: next }
     this.channel?.postMessage('update')
     this.notify()
     return true
@@ -111,52 +90,47 @@ class LocalBuzzerStore implements BuzzerStore {
 
   getSnapshot = () => this.data
 
-  arm(mode: Mode, on: boolean) {
-    this.mutate(mode, (s) => (on ? { ...s, armed: true } : { ...s, armed: false, status: 'open', buzzedTeamId: null, buzzedAt: null }))
+  arm(on: boolean) {
+    this.mutate((s) => (on ? { ...s, armed: true } : { ...s, armed: false, status: 'open', buzzedTeamId: null, buzzedAt: null }))
   }
 
-  judge(mode: Mode, correct: boolean) {
-    this.mutate(mode, (s) => applyJudge(s, correct))
+  judge(correct: boolean) {
+    this.mutate((s) => applyJudge(s, correct))
   }
 
-  release(mode: Mode) {
-    this.mutate(mode, (s) => ({ ...s, status: 'open', buzzedTeamId: null, buzzedAt: null }))
+  release() {
+    this.mutate((s) => ({ ...s, status: 'open', buzzedTeamId: null, buzzedAt: null }))
   }
 
-  nextQuestion(mode: Mode) {
-    this.mutate(mode, (s) => ({ ...s, status: 'open', buzzedTeamId: null, buzzedAt: null, excludedTeamIds: [], question: s.question + 1 }))
+  nextQuestion() {
+    this.mutate((s) => ({ ...s, status: 'open', buzzedTeamId: null, buzzedAt: null, excludedTeamIds: [], question: s.question + 1 }))
   }
 
-  adjustRound(mode: Mode, teamId: string, delta: number) {
-    this.mutate(mode, (s) => ({ ...s, roundScores: { ...s.roundScores, [teamId]: (s.roundScores[teamId] ?? 0) + delta } }))
+  adjustRound(teamId: string, delta: number) {
+    this.mutate((s) => ({ ...s, roundScores: { ...s.roundScores, [teamId]: (s.roundScores[teamId] ?? 0) + delta } }))
   }
 
-  resetRound(mode: Mode) {
-    this.mutate(mode, (s) => ({ ...initialBuzzer(), armed: s.armed, lastJudgement: s.lastJudgement }))
+  resetRound() {
+    this.mutate((s) => ({ ...initialBuzzer(), armed: s.armed, lastJudgement: s.lastJudgement }))
   }
 
-  async ensureTokens(mode: Mode, teamIds: string[]) {
+  async ensureTokens(teamIds: string[]) {
     const tokens = read<Tokens>(TOKEN_KEY, {})
     const out: Record<string, string> = {}
-    for (const [token, owner] of Object.entries(tokens)) {
-      if (owner.mode === mode) out[owner.teamId] = token
-    }
+    for (const [token, teamId] of Object.entries(tokens)) out[teamId] = token
     for (const teamId of teamIds) {
       if (out[teamId]) continue
       out[teamId] = newToken()
-      tokens[out[teamId]] = { mode, teamId }
+      tokens[out[teamId]] = teamId
     }
     localStorage.setItem(TOKEN_KEY, JSON.stringify(tokens))
     return out
   }
 
-  async regenerateToken(mode: Mode, teamId: string) {
-    const tokens = read<Tokens>(TOKEN_KEY, {})
-    for (const [token, owner] of Object.entries(tokens)) {
-      if (owner.mode === mode && owner.teamId === teamId) delete tokens[token]
-    }
+  async regenerateToken(teamId: string) {
+    const tokens = Object.fromEntries(Object.entries(read<Tokens>(TOKEN_KEY, {})).filter(([, id]) => id !== teamId))
     const token = newToken()
-    tokens[token] = { mode, teamId }
+    tokens[token] = teamId
     localStorage.setItem(TOKEN_KEY, JSON.stringify(tokens))
     return token
   }
@@ -166,18 +140,18 @@ class LocalBuzzerStore implements BuzzerStore {
   }
 
   async buzz(token: string) {
-    const owner = await this.resolveToken(token)
-    if (!owner) return false
-    return this.mutate(owner.mode, (s) => applyBuzz(s, owner.teamId, new Date().toISOString()))
+    const teamId = await this.resolveToken(token)
+    if (!teamId) return false
+    return this.mutate((s) => applyBuzz(s, teamId, new Date().toISOString()))
   }
 
-  connect(owner: TokenOwner) {
-    const ping = () => this.presence?.postMessage(owner)
+  connect(teamId: string) {
+    const ping = () => this.presence?.postMessage({ teamId })
     ping()
     const id = window.setInterval(ping, 2000)
     return () => {
       window.clearInterval(id)
-      this.presence?.postMessage({ ...owner, leave: true })
+      this.presence?.postMessage({ teamId, leave: true })
     }
   }
 }
