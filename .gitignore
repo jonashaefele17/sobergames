@@ -3,3 +3,6 @@ node_modules/
 .env
 dist/
 
+
+# Arbeitsmaterial (Logo, Kontext), nicht im Repo
+context/
