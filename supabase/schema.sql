@@ -29,7 +29,11 @@ create policy "anyone can read sobergames"
   to anon, authenticated
   using (true);
 
+-- Neue Supabase-Projekte geben Tabellen nicht mehr automatisch für die API frei,
+-- daher die Rechte ausdrücklich vergeben (RLS-Policies schränken zusätzlich ein).
 revoke insert, update, delete on public.sobergames from anon;
+grant select on public.sobergames to anon, authenticated;
+grant update on public.sobergames to authenticated;
 
 drop policy if exists "host can update sobergames" on public.sobergames;
 create policy "host can update sobergames"
@@ -71,6 +75,8 @@ create policy "anyone can read buzzer"
   using (true);
 
 revoke insert, update, delete on public.sobergames_buzzer from anon;
+grant select on public.sobergames_buzzer to anon, authenticated;
+grant update on public.sobergames_buzzer to authenticated;
 
 drop policy if exists "host can update buzzer" on public.sobergames_buzzer;
 create policy "host can update buzzer"
@@ -91,6 +97,7 @@ create table if not exists public.sobergames_tokens (
 
 alter table public.sobergames_tokens enable row level security;
 revoke all on public.sobergames_tokens from anon;
+grant select, insert, delete on public.sobergames_tokens to authenticated;
 
 drop policy if exists "host manages tokens" on public.sobergames_tokens;
 create policy "host manages tokens"
