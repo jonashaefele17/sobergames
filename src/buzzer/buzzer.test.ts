@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import * as act from '../lib/actions'
 import { standings } from '../lib/scoring'
-import { applyBuzz, applyJudge, initialBuzzer, newToken } from './types'
+import { applyBuzz, applyJudge, applyUndo, canUndo, initialBuzzer, newToken } from './types'
 
 const armed = () => ({ ...initialBuzzer(), armed: true })
 
@@ -16,7 +16,7 @@ describe('Buzzer', () => {
   it('Falsch sperrt das Team und gibt für die anderen frei', () => {
     const s = applyJudge(applyBuzz(armed(), 'a', 't1')!, false)!
     expect(s).toMatchObject({ status: 'open', buzzedTeamId: null, excludedTeamIds: ['a'], question: 1 })
-    expect(s.lastJudgement).toEqual({ nonce: 1, teamId: 'a', correct: false })
+    expect(s.lastJudgement).toEqual({ nonce: 1, teamId: 'a', correct: false, excludedBefore: [] })
     expect(applyBuzz(s, 'a', 't2')).toBeNull()
     expect(applyBuzz(s, 'b', 't2')?.buzzedTeamId).toBe('b')
   })
@@ -47,5 +47,29 @@ describe('Ergebnis aus Rundenpunkten', () => {
     // Teams ohne Punkte landen hinten, überschreibt das alte Ergebnis
     s = act.setResultFromScores(game, { [c]: 2 })(s)
     expect(s.games[0].result?.places).toEqual([[c], [a, b]])
+  })
+})
+
+describe('Rückgängig', () => {
+  it('nach Falsch: Sperre weg, Team wieder dran', () => {
+    const wrong = applyJudge(applyBuzz(armed(), 'a', 't1')!, false)!
+    expect(canUndo(wrong)).toBe(true)
+    const s = applyUndo(wrong, 't2')!
+    expect(s).toMatchObject({ status: 'locked', buzzedTeamId: 'a', buzzedAt: 't2', excludedTeamIds: [], armed: true })
+    expect(canUndo(s)).toBe(false)
+    expect(applyUndo(s, 't3')).toBeNull()
+  })
+
+  it('nach Richtig mit Pause: Punkt und Frage zurück, frühere Sperren wieder da', () => {
+    let s = applyJudge(applyBuzz(armed(), 'b', 't1')!, false)!
+    s = applyJudge(applyBuzz(s, 'a', 't2')!, true, true)!
+    expect(s).toMatchObject({ armed: false, question: 2, roundScores: { a: 1 } })
+    s = applyUndo(s, 't3')!
+    expect(s).toMatchObject({ armed: true, status: 'locked', buzzedTeamId: 'a', question: 1, roundScores: { a: 0 }, excludedTeamIds: ['b'] })
+  })
+
+  it('nicht mehr möglich, sobald neu gebuzzert wurde', () => {
+    const s = applyBuzz(applyJudge(applyBuzz(armed(), 'a', 't1')!, false)!, 'b', 't2')!
+    expect(canUndo(s)).toBe(false)
   })
 })

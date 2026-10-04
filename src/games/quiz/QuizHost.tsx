@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import './quiz.css'
 import { buzzerStore, useBuzzer } from '../../buzzer'
+import { canUndo } from '../../buzzer/types'
 import * as act from '../../lib/actions'
 import { teamStyle } from '../../lib/motion'
 import { gameStore } from '../../store'
@@ -118,6 +119,20 @@ export default function QuizHost({ state, game }: { state: State; game: Game }) 
     reveal()
   }
 
+  /** Vertippt? Wertung zurücknehmen; nach „Richtig“ wird auch die Antwort wieder ausgeblendet. */
+  const undo = () => {
+    if (buzzer.lastJudgement?.correct) run(act.reopenQuestion)
+    buzzerStore.undoJudge()
+  }
+
+  /** Alle Sperren dieser Frage aufheben und den Buzzer für alle scharf schalten. */
+  const releaseAll = () => {
+    if (answered) run(act.reopenQuestion)
+    buzzerStore.startQuestion()
+  }
+
+  const lastTeam = state.teams.find((t) => t.id === buzzer.lastJudgement?.teamId)
+
   const resolve = () => {
     buzzerStore.arm(false)
     reveal()
@@ -178,14 +193,27 @@ export default function QuizHost({ state, game }: { state: State; game: Game }) 
               Falsch
             </button>
           </div>
+          <button onClick={() => buzzerStore.release()}>Freigeben ohne Wertung</button>
         </div>
       )}
       {quiz?.phase === 'question' && !buzzed && (
         <p className="hint">
-          Buzzer frei
+          {buzzer.armed ? 'Buzzer frei' : 'Buzzer aus'}
           {buzzer.excludedTeamIds.length > 0 &&
             ` · gesperrt: ${buzzer.excludedTeamIds.map((id) => state.teams.find((t) => t.id === id)?.name).join(', ')}`}
         </p>
+      )}
+      {quiz && !buzzed && (
+        <div className="row fix-row">
+          {canUndo(buzzer) && lastTeam && (
+            <button onClick={undo}>
+              ↶ Rückgängig: {lastTeam.name} {buzzer.lastJudgement!.correct ? 'richtig' : 'falsch'}
+            </button>
+          )}
+          {(answered || buzzer.excludedTeamIds.length > 0 || !buzzer.armed) && (
+            <button onClick={releaseAll}>{answered ? 'Frage nochmal freigeben' : 'Alle Teams wieder freigeben'}</button>
+          )}
+        </div>
       )}
 
       {questions && questions.length > 0 && (

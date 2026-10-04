@@ -296,6 +296,10 @@ export const showQuestion = (view: Omit<QuizView, 'answer' | 'info' | 'phase'>) 
 export const revealAnswer = (answer: string, info: string | null) => (s: State): State =>
   s.play.quiz ? { ...s, play: { ...s.play, quiz: { ...s.play.quiz, answer, info, phase: 'answer' } } } : s
 
+/** Antwort wieder ausblenden, die Frage läuft weiter (z. B. nach versehentlichem „Richtig“). */
+export const reopenQuestion = (s: State): State =>
+  s.play.quiz ? { ...s, play: { ...s.play, quiz: { ...s.play.quiz, answer: null, info: null, phase: 'question' } } } : s
+
 /** Beendet das Spiel: Rundenpunkte werden zur Platzierung, danach die Tabelle. */
 export const endPlay = (scores: Record<string, number>) => (s: State): State => {
   const gameId = s.play.gameId

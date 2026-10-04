@@ -96,11 +96,12 @@ export function BuzzerOverlay({ state, buzzer, pinned = false }: { state: State;
         {buzzer.armed && buzzed && (
           <motion.div
             key={`banner-${buzzer.buzzedAt}`}
-            className="buzz-banner"
+            className={`buzz-banner${pinned ? ' compact' : ''}`}
             style={teamStyle(buzzed.color)}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0, transition: { duration: 0.35 } }}
+            initial={{ opacity: 0, y: pinned ? '-60%' : 0 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: pinned ? '-40%' : 0, transition: { duration: 0.35 } }}
+            transition={{ type: 'spring', stiffness: 260, damping: 24 }}
           >
             <motion.div
               className="buzz-banner-bar"

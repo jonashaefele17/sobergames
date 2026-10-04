@@ -7,6 +7,7 @@ import { gameStore } from '../store'
 import type { State } from '../store/types'
 import { buzzerStore, useBuzzer } from '.'
 import { QrOverlay } from './QrOverlay'
+import { canUndo } from './types'
 
 const pad = (n: number) => String(n).padStart(2, '0')
 
@@ -114,6 +115,16 @@ export function BuzzerPanel({ state }: { state: State }) {
           )}
           {buzzer.excludedTeamIds.length > 0 && (
             <p className="hint">Gesperrt: {buzzer.excludedTeamIds.map((id) => team(id)?.name).join(', ')}</p>
+          )}
+          {!buzzed && (
+            <div className="row fix-row">
+              {canUndo(buzzer) && team(buzzer.lastJudgement!.teamId) && (
+                <button onClick={() => buzzerStore.undoJudge()}>
+                  ↶ Rückgängig: {team(buzzer.lastJudgement!.teamId)!.name} {buzzer.lastJudgement!.correct ? 'richtig' : 'falsch'}
+                </button>
+              )}
+              {buzzer.excludedTeamIds.length > 0 && <button onClick={() => buzzerStore.startQuestion()}>Alle Teams wieder freigeben</button>}
+            </div>
           )}
         </div>
       )}

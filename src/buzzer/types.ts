@@ -5,6 +5,10 @@ export interface Judgement {
   nonce: number
   teamId: string
   correct: boolean
+  /** Sperren vor der Wertung, damit sie sich rückgängig machen lässt */
+  excludedBefore?: string[]
+  /** schon rückgängig gemacht */
+  undone?: boolean
 }
 
 export interface BuzzerState {
@@ -54,6 +58,8 @@ export interface BuzzerStore {
   judge(correct: boolean, opts?: { pause?: boolean }): void
   /** neue Frage: Buzzer scharf, frei für alle, Sperren aufgehoben */
   startQuestion(): void
+  /** letzte Wertung zurücknehmen: das Team ist wieder dran, Punkt bzw. Sperre fällt weg */
+  undoJudge(): void
   release(): void
   nextQuestion(): void
   adjustRound(teamId: string, delta: number): void
@@ -90,7 +96,7 @@ const nextNonce = (s: BuzzerState) => (s.lastJudgement?.nonce ?? 0) + 1
 export function applyJudge(s: BuzzerState, correct: boolean, pause = false): BuzzerState | null {
   const teamId = s.buzzedTeamId
   if (s.status !== 'locked' || !teamId) return null
-  const judgement = { nonce: nextNonce(s), teamId, correct }
+  const judgement: Judgement = { nonce: nextNonce(s), teamId, correct, excludedBefore: s.excludedTeamIds }
   if (correct) {
     return {
       ...s,
@@ -122,3 +128,26 @@ export const applyStartQuestion = (s: BuzzerState): BuzzerState => ({
   buzzedAt: null,
   excludedTeamIds: [],
 })
+
+/** Kann die letzte Wertung noch zurückgenommen werden? Nicht mehr, sobald jemand neu gebuzzert hat. */
+export const canUndo = (s: BuzzerState) => Boolean(s.lastJudgement && !s.lastJudgement.undone && s.status === 'open')
+
+export function applyUndo(s: BuzzerState, at: string): BuzzerState | null {
+  const j = s.lastJudgement
+  if (!j || !canUndo(s)) return null
+  const restored: BuzzerState = {
+    ...s,
+    armed: true,
+    status: 'locked',
+    buzzedTeamId: j.teamId,
+    buzzedAt: at,
+    excludedTeamIds: j.excludedBefore ?? s.excludedTeamIds.filter((id) => id !== j.teamId),
+    lastJudgement: { ...j, undone: true },
+  }
+  if (!j.correct) return restored
+  return {
+    ...restored,
+    question: Math.max(1, s.question - 1),
+    roundScores: { ...s.roundScores, [j.teamId]: Math.max(0, (s.roundScores[j.teamId] ?? 0) - 1) },
+  }
+}

@@ -102,6 +102,30 @@
   pointer-events: none;
 }
 
+/* Auf der Spielseite: oben über der Titelzeile, ohne Abdunkeln – die Frage bleibt lesbar */
+.buzz-banner.compact {
+  inset: 0 0 auto 0;
+  display: block;
+  background: none;
+}
+
+.buzz-banner.compact .buzz-banner-bar {
+  flex-direction: row;
+  justify-content: center;
+  align-items: baseline;
+  gap: calc(var(--u) * 2);
+  padding: calc(var(--u) * 1.4) 0 calc(var(--u) * 1);
+}
+
+.buzz-banner.compact .buzz-team {
+  font-size: calc(var(--u) * 5.6);
+}
+
+.buzz-banner.compact .buzz-sub {
+  margin-top: 0;
+  font-size: calc(var(--u) * 1.6);
+}
+
 .buzz-banner-bar {
   width: 100%;
   padding: calc(var(--u) * 2.4) 0 calc(var(--u) * 1.8);

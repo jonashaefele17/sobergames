@@ -452,3 +452,8 @@
   padding: 6px 10px;
   font-size: 14px;
 }
+
+.host .fix-row button {
+  flex: 1;
+  font-size: 14px;
+}
