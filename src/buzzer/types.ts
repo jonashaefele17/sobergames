@@ -60,6 +60,8 @@ export interface BuzzerStore {
   startQuestion(): void
   /** letzte Wertung zurücknehmen: das Team ist wieder dran, Punkt bzw. Sperre fällt weg */
   undoJudge(): void
+  /** ein einzelnes Team für die laufende Frage sperren oder wieder freigeben */
+  setExcluded(teamId: string, excluded: boolean): void
   release(): void
   nextQuestion(): void
   adjustRound(teamId: string, delta: number): void
@@ -150,4 +152,9 @@ export function applyUndo(s: BuzzerState, at: string): BuzzerState | null {
     question: Math.max(1, s.question - 1),
     roundScores: { ...s.roundScores, [j.teamId]: Math.max(0, (s.roundScores[j.teamId] ?? 0) - 1) },
   }
+}
+
+export function applySetExcluded(s: BuzzerState, teamId: string, excluded: boolean): BuzzerState {
+  const without = s.excludedTeamIds.filter((id) => id !== teamId)
+  return { ...s, excludedTeamIds: excluded ? [...without, teamId] : without }
 }

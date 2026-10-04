@@ -9,10 +9,11 @@ import type { BuzzerState } from './types'
 const FX_MS = 1600
 
 /**
- * Buzzer auf dem Beamer: Rundenpunkte und Status unten, großes Banner beim
- * Buzz. Wie Rad und Aufdecken animiert es nur, was es live miterlebt.
+ * Buzzer auf der Spielseite: Rundenstand unten, beim Buzz ein Banner in der
+ * Titelzeile, damit Frage und Bild lesbar bleiben. Wie Rad und Aufdecken
+ * animiert es nur, was es live miterlebt.
  */
-export function BuzzerOverlay({ state, buzzer, pinned = false }: { state: State; buzzer: BuzzerState; pinned?: boolean }) {
+export function BuzzerOverlay({ state, buzzer }: { state: State; buzzer: BuzzerState }) {
   const [initialNonce] = useState(buzzer.lastJudgement?.nonce ?? 0)
   const [fxDone, setFxDone] = useState(0)
   const [initialBuzz] = useState(buzzer.buzzedAt)
@@ -40,67 +41,59 @@ export function BuzzerOverlay({ state, buzzer, pinned = false }: { state: State;
 
   return (
     <>
-      <AnimatePresence>
-        {(buzzer.armed || pinned) && (
-          <motion.div
-            key="panel"
-            className="buzzer-panel"
-            initial={{ y: '110%' }}
-            animate={{ y: 0 }}
-            exit={{ y: '110%' }}
-            transition={{ duration: 0.6, ease: EASE_OUT }}
-          >
-            <div className="round-scores">
-              {ranking.map((t) => {
-                const excluded = buzzer.excludedTeamIds.includes(t.id)
-                const fx = showFx && judgement.teamId === t.id ? judgement : null
-                return (
-                  <motion.div
-                    key={t.id}
-                    layout
-                    transition={SPRING}
-                    className={`round-item${excluded ? ' excluded' : ''}`}
-                    style={teamStyle(t.color)}
-                  >
-                    <span className="rname">{t.name}</span>
-                    <span className="rpts">
-                      <CountUp value={buzzer.roundScores[t.id] ?? 0} />
-                    </span>
-                    <AnimatePresence>
-                      {fx && (
-                        <motion.span
-                          key={fx.nonce}
-                          className={`round-fx ${fx.correct ? 'good' : 'bad'}`}
-                          initial={{ opacity: 0, y: 20, scale: 0.6 }}
-                          animate={{ opacity: 1, y: -40, scale: 1 }}
-                          exit={{ opacity: 0, y: -70 }}
-                          transition={{ duration: 0.7, ease: EASE_OUT }}
-                        >
-                          {fx.correct ? '+1' : '✕'}
-                        </motion.span>
-                      )}
-                    </AnimatePresence>
-                  </motion.div>
-                )
-              })}
-            </div>
-            <div className="buzzer-status">
-              {!buzzer.armed ? 'Buzzer pausiert' : buzzed ? 'Gebuzzert' : 'Buzzer frei'}
-              {!pinned && ` · Frage ${buzzer.question}`}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <motion.div
+        className="buzzer-panel"
+        initial={{ y: '110%' }}
+        animate={{ y: 0 }}
+        exit={{ y: '110%' }}
+        transition={{ duration: 0.6, ease: EASE_OUT }}
+      >
+        <div className="round-scores">
+          {ranking.map((t) => {
+            const excluded = buzzer.excludedTeamIds.includes(t.id)
+            const fx = showFx && judgement.teamId === t.id ? judgement : null
+            return (
+              <motion.div
+                key={t.id}
+                layout
+                transition={SPRING}
+                className={`round-item${excluded ? ' excluded' : ''}`}
+                style={teamStyle(t.color)}
+              >
+                <span className="rname">{t.name}</span>
+                <span className="rpts">
+                  <CountUp value={buzzer.roundScores[t.id] ?? 0} />
+                </span>
+                <AnimatePresence>
+                  {fx && (
+                    <motion.span
+                      key={fx.nonce}
+                      className={`round-fx ${fx.correct ? 'good' : 'bad'}`}
+                      initial={{ opacity: 0, y: 20, scale: 0.6 }}
+                      animate={{ opacity: 1, y: -40, scale: 1 }}
+                      exit={{ opacity: 0, y: -70 }}
+                      transition={{ duration: 0.7, ease: EASE_OUT }}
+                    >
+                      {fx.correct ? '+1' : '✕'}
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+              </motion.div>
+            )
+          })}
+        </div>
+        <div className="buzzer-status">{!buzzer.armed ? 'Buzzer pausiert' : buzzed ? 'Gebuzzert' : 'Buzzer frei'}</div>
+      </motion.div>
 
       <AnimatePresence>
         {buzzer.armed && buzzed && (
           <motion.div
             key={`banner-${buzzer.buzzedAt}`}
-            className={`buzz-banner${pinned ? ' compact' : ''}`}
+            className="buzz-banner"
             style={teamStyle(buzzed.color)}
-            initial={{ opacity: 0, y: pinned ? '-60%' : 0 }}
+            initial={{ opacity: 0, y: '-70%' }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: pinned ? '-40%' : 0, transition: { duration: 0.35 } }}
+            exit={{ opacity: 0, y: '-50%', transition: { duration: 0.35 } }}
             transition={{ type: 'spring', stiffness: 260, damping: 24 }}
           >
             <motion.div

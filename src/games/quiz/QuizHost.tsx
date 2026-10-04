@@ -196,12 +196,27 @@ export default function QuizHost({ state, game }: { state: State; game: Game }) 
           <button onClick={() => buzzerStore.release()}>Freigeben ohne Wertung</button>
         </div>
       )}
-      {quiz?.phase === 'question' && !buzzed && (
-        <p className="hint">
-          {buzzer.armed ? 'Buzzer frei' : 'Buzzer aus'}
-          {buzzer.excludedTeamIds.length > 0 &&
-            ` · gesperrt: ${buzzer.excludedTeamIds.map((id) => state.teams.find((t) => t.id === id)?.name).join(', ')}`}
-        </p>
+      {quiz?.phase === 'question' && (
+        <div className="card team-states">
+          <div className="hint">{!buzzer.armed ? 'Buzzer aus' : buzzed ? 'Gebuzzert' : 'Buzzer frei'}</div>
+          {state.teams.map((t) => {
+            const isBuzzed = t.id === buzzer.buzzedTeamId
+            const excluded = buzzer.excludedTeamIds.includes(t.id)
+            const status = isBuzzed ? 'dran' : excluded ? 'gesperrt' : buzzer.armed ? 'frei' : 'aus'
+            return (
+              <div key={t.id} className="row tight" style={teamStyle(t.color)}>
+                <span className="dot" />
+                <span className="grow">{t.name}</span>
+                <span className={`team-state ${status}`}>{status}</span>
+                {!isBuzzed && (
+                  <button className="state-btn" onClick={() => buzzerStore.setExcluded(t.id, !excluded)}>
+                    {excluded ? 'Freigeben' : 'Sperren'}
+                  </button>
+                )}
+              </div>
+            )
+          })}
+        </div>
       )}
       {quiz && !buzzed && (
         <div className="row fix-row">
@@ -210,8 +225,10 @@ export default function QuizHost({ state, game }: { state: State; game: Game }) 
               ↶ Rückgängig: {lastTeam.name} {buzzer.lastJudgement!.correct ? 'richtig' : 'falsch'}
             </button>
           )}
-          {(answered || buzzer.excludedTeamIds.length > 0 || !buzzer.armed) && (
-            <button onClick={releaseAll}>{answered ? 'Frage nochmal freigeben' : 'Alle Teams wieder freigeben'}</button>
+          {(answered || buzzer.excludedTeamIds.length > 1 || !buzzer.armed) && (
+            <button onClick={releaseAll}>
+              {answered ? 'Frage nochmal freigeben' : !buzzer.armed ? 'Buzzer scharf schalten' : 'Alle Teams freigeben'}
+            </button>
           )}
         </div>
       )}

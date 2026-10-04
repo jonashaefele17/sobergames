@@ -1,6 +1,6 @@
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabaseClient'
-import { applyJudge, applyStartQuestion, applyUndo, initialBuzzer, newToken, type BuzzerData, type BuzzerState, type BuzzerStore, type Judgement } from './types'
+import { applyJudge, applySetExcluded, applyStartQuestion, applyUndo, initialBuzzer, newToken, type BuzzerData, type BuzzerState, type BuzzerStore, type Judgement } from './types'
 
 const ROW_ID = 1
 const TABLE = 'sobergames_buzzer'
@@ -168,6 +168,10 @@ class SupabaseBuzzerStore implements BuzzerStore {
   undoJudge() {
     // nur solange niemand neu gebuzzert hat
     void this.write((s) => applyUndo(s, new Date().toISOString()), { status: 'open' })
+  }
+
+  setExcluded(teamId: string, excluded: boolean) {
+    void this.write((s) => applySetExcluded(s, teamId, excluded))
   }
 
   release() {

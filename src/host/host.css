@@ -457,3 +457,42 @@
   flex: 1;
   font-size: 14px;
 }
+
+.host .team-states {
+  gap: 6px;
+}
+
+.host .team-state {
+  width: 72px;
+  text-align: center;
+  font-size: 13px;
+  padding: 3px 0;
+  border-radius: 6px;
+  background: var(--navy-soft);
+  color: var(--muted);
+  flex: none;
+}
+
+.host .team-state.frei {
+  background: rgba(52, 201, 138, 0.18);
+  color: #6be3b0;
+}
+
+.host .team-state.gesperrt {
+  background: rgba(239, 83, 80, 0.18);
+  color: #ff8a80;
+}
+
+.host .team-state.dran {
+  background: var(--team);
+  color: var(--navy-deep);
+  font-weight: 600;
+}
+
+.host button.state-btn {
+  width: 100px;
+  flex: none;
+  min-height: 38px;
+  padding: 4px 8px;
+  font-size: 14px;
+}

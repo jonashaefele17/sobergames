@@ -92,61 +92,36 @@
   color: var(--muted);
 }
 
+/* Banner oben über der Titelzeile der Spielseite, ohne Abdunkeln – die Frage bleibt lesbar */
 .buzz-banner {
   position: absolute;
-  inset: 0;
+  left: 0;
+  right: 0;
+  top: 0;
   z-index: 25;
-  display: grid;
-  place-items: center;
-  background: radial-gradient(ellipse 70% 50% at 50% 45%, rgba(3, 5, 12, 0.55), rgba(3, 5, 12, 0.85));
   pointer-events: none;
-}
-
-/* Auf der Spielseite: oben über der Titelzeile, ohne Abdunkeln – die Frage bleibt lesbar */
-.buzz-banner.compact {
-  inset: 0 0 auto 0;
-  display: block;
-  background: none;
-}
-
-.buzz-banner.compact .buzz-banner-bar {
-  flex-direction: row;
-  justify-content: center;
-  align-items: baseline;
-  gap: calc(var(--u) * 2);
-  padding: calc(var(--u) * 1.4) 0 calc(var(--u) * 1);
-}
-
-.buzz-banner.compact .buzz-team {
-  font-size: calc(var(--u) * 5.6);
-}
-
-.buzz-banner.compact .buzz-sub {
-  margin-top: 0;
-  font-size: calc(var(--u) * 1.6);
 }
 
 .buzz-banner-bar {
   width: 100%;
-  padding: calc(var(--u) * 2.4) 0 calc(var(--u) * 1.8);
-  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--team) 85%, black) 18%, var(--team) 50%, color-mix(in srgb, var(--team) 85%, black) 82%, transparent);
-  text-align: center;
   display: flex;
-  flex-direction: column;
-  align-items: center;
+  justify-content: center;
+  align-items: baseline;
+  gap: calc(var(--u) * 2);
+  padding: calc(var(--u) * 1.4) 0 calc(var(--u) * 1);
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--team) 85%, black) 18%, var(--team) 50%, color-mix(in srgb, var(--team) 85%, black) 82%, transparent);
   box-shadow: 0 0 calc(var(--u) * 6) color-mix(in srgb, var(--team) 50%, transparent);
 }
 
 .buzz-team {
-  font-size: calc(var(--u) * 10);
+  font-size: calc(var(--u) * 5.6);
   line-height: 0.95;
   color: var(--white);
   text-shadow: 0 calc(var(--u) * 0.3) calc(var(--u) * 1) rgba(0, 0, 0, 0.45);
 }
 
 .buzz-sub {
-  margin-top: calc(var(--u) * 0.6);
-  font-size: calc(var(--u) * 2);
+  font-size: calc(var(--u) * 1.6);
   letter-spacing: 0.45em;
   color: rgba(255, 255, 255, 0.85);
 }
@@ -156,7 +131,7 @@
   inset: 0;
   z-index: 40;
   pointer-events: none;
-  background: radial-gradient(circle at 50% 45%, rgba(255, 236, 170, 0.9), rgba(var(--gold-rgb), 0.35) 45%, transparent 75%);
+  background: radial-gradient(ellipse 70% 30% at 50% 0%, rgba(255, 236, 170, 0.8), rgba(var(--gold-rgb), 0.25) 50%, transparent 80%);
   mix-blend-mode: screen;
 }
 

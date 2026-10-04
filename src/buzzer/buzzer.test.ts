@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import * as act from '../lib/actions'
 import { standings } from '../lib/scoring'
-import { applyBuzz, applyJudge, applyUndo, canUndo, initialBuzzer, newToken } from './types'
+import { applyBuzz, applyJudge, applySetExcluded, applyUndo, canUndo, initialBuzzer, newToken } from './types'
 
 const armed = () => ({ ...initialBuzzer(), armed: true })
 
@@ -71,5 +71,18 @@ describe('Rückgängig', () => {
   it('nicht mehr möglich, sobald neu gebuzzert wurde', () => {
     const s = applyBuzz(applyJudge(applyBuzz(armed(), 'a', 't1')!, false)!, 'b', 't2')!
     expect(canUndo(s)).toBe(false)
+  })
+})
+
+describe('Einzeln freigeben', () => {
+  it('ein Team sperren und wieder freigeben, andere bleiben unberührt', () => {
+    let s = applyJudge(applyBuzz(armed(), 'a', 't1')!, false)!
+    s = applySetExcluded(s, 'b', true)
+    expect(s.excludedTeamIds).toEqual(['a', 'b'])
+    s = applySetExcluded(s, 'a', false)
+    expect(s.excludedTeamIds).toEqual(['b'])
+    expect(applyBuzz(s, 'a', 't2')?.buzzedTeamId).toBe('a')
+    expect(applyBuzz(s, 'b', 't2')).toBeNull()
+    expect(applySetExcluded(s, 'b', true).excludedTeamIds).toEqual(['b'])
   })
 })

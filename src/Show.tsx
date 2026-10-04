@@ -45,10 +45,9 @@ function SceneView({ state, buzzerOn }: { state: State; buzzerOn: boolean }) {
 export default function Show() {
   const { ready, state } = useGame()
   const buzzer = useBuzzer().state
-  // auf der Spielseite eines Buzzer-Spiels bleibt der Rundenstand stehen, auch wenn der Buzzer kurz pausiert
+  // Der Buzzer erscheint nur auf der Spielseite eines Buzzer-Spiels, dort aber dauerhaft
   const playKind = state.scene === 'play' && state.play.gameId ? gameDef(state.play.gameId).kind : null
-  const pinned = playKind === 'quiz'
-  const buzzerOn = buzzer.armed || pinned
+  const buzzerOn = playKind === 'quiz'
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -79,7 +78,7 @@ export default function Show() {
           </motion.div>
         )}
       </AnimatePresence>
-      {ready && <BuzzerOverlay state={state} buzzer={buzzer} pinned={pinned} />}
+      <AnimatePresence>{ready && buzzerOn && <BuzzerOverlay key="buzzer" state={state} buzzer={buzzer} />}</AnimatePresence>
     </div>
   )
 }

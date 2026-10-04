@@ -1,4 +1,4 @@
-import { applyBuzz, applyJudge, applyStartQuestion, applyUndo, initialBuzzer, newToken, type BuzzerData, type BuzzerState, type BuzzerStore } from './types'
+import { applyBuzz, applyJudge, applySetExcluded, applyStartQuestion, applyUndo, initialBuzzer, newToken, type BuzzerData, type BuzzerState, type BuzzerStore } from './types'
 
 const STATE_KEY = 'sobergames-buzzer-v2'
 const TOKEN_KEY = 'sobergames-buzzer-tokens-v2'
@@ -104,6 +104,10 @@ class LocalBuzzerStore implements BuzzerStore {
 
   undoJudge() {
     this.mutate((s) => applyUndo(s, new Date().toISOString()))
+  }
+
+  setExcluded(teamId: string, excluded: boolean) {
+    this.mutate((s) => applySetExcluded(s, teamId, excluded))
   }
 
   release() {
