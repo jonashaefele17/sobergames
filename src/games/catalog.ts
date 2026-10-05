@@ -1,7 +1,7 @@
 import type { Game } from '../store/types'
 
 /** Spielart: bestimmt, welche Steuerung, Beamer-Szene und Daten ein Spiel hat (siehe registry.tsx). */
-export type GameKind = 'plain' | 'quiz' | 'score' | 'countdown' | 'stopwatch'
+export type GameKind = 'plain' | 'quiz' | 'score' | 'countdown' | 'stopwatch' | 'prompt' | 'measure'
 
 export interface GameVariant {
   key: string
@@ -35,6 +35,10 @@ export interface QuizConfig {
   itemLabel: string
   /** Bild füllt die Fläche, Text steht darunter (z. B. Orte) */
   imageFirst?: boolean
+  /** Einträge ohne Antwort, z. B. Aussagen bei „Wer würde eher“ */
+  noAnswer?: boolean
+  /** reine Namensliste: ohne Bilder und ohne Beispielfragen, z. B. die Objekte bei Perfect Cut */
+  plainList?: boolean
 }
 
 export interface GameDef {
@@ -75,7 +79,7 @@ export const GAMES: GameDef[] = [
     ],
   },
   { id: 'ex-oder-zieh', name: 'Ex oder zieh', category: 'Party', kind: 'stopwatch' },
-  { id: 'wer-wuerde-eher', name: 'Wer würde eher', category: 'Soziales', kind: 'plain' },
+  { id: 'wer-wuerde-eher', name: 'Wer würde eher', category: 'Soziales', kind: 'prompt', quiz: { itemLabel: 'Frage', noAnswer: true } },
   { id: 'songs-erraten', name: 'Songs erraten', category: 'Musik', kind: 'quiz', quiz: { itemLabel: 'Song' }, timerMinutes: 25 },
   {
     id: 'build-it',
@@ -101,7 +105,14 @@ export const GAMES: GameDef[] = [
     score: { mode: 'round', max: 12 },
   },
   { id: 'allgemeinwissen', name: 'Allgemeinwissen', category: 'Wissen', kind: 'quiz', quiz: { itemLabel: 'Frage' }, timerMinutes: 25 },
-  { id: 'perfect-cut', name: 'Perfect Cut', category: 'Geschicklichkeit', kind: 'plain' },
+  {
+    id: 'perfect-cut',
+    name: 'Perfect Cut',
+    category: 'Geschicklichkeit',
+    kind: 'measure',
+    unit: 'g',
+    quiz: { itemLabel: 'Objekt', noAnswer: true, plainList: true },
+  },
   { id: 'schaetzfragen', name: 'Schätzfragen', category: 'Wissen', kind: 'plain' },
   {
     id: 'closest-to-the-edge',

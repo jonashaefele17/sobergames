@@ -5,7 +5,7 @@ import { SPRING } from '../../lib/motion'
 import { gameDef } from '../catalog'
 import { parseQuestions } from './parse'
 import { newQuestion, questionStore, type Question } from './questionStore'
-import { SAMPLE_QUESTIONS } from './samples'
+import { SAMPLE_PROMPTS, SAMPLE_QUESTIONS } from './samples'
 
 const pad = (n: number) => String(n).padStart(2, '0')
 const SAVE_DELAY_MS = 600
@@ -31,6 +31,8 @@ type SaveState = 'idle' | 'saving' | 'saved' | 'error'
 export default function QuizEditor({ gameId, onClose }: { gameId: string; onClose: () => void }) {
   const def = gameDef(gameId)
   const label = def.quiz?.itemLabel ?? 'Frage'
+  const noAnswer = Boolean(def.quiz?.noAnswer)
+  const plainList = Boolean(def.quiz?.plainList)
   const [questions, setQuestions] = useState<Question[] | null>(null)
   const [paste, setPaste] = useState('')
   const [save, setSave] = useState<SaveState>('idle')
@@ -101,7 +103,7 @@ export default function QuizEditor({ gameId, onClose }: { gameId: string; onClos
 
   const loadSamples = () => {
     if (questions?.length && !confirm('Beispielfragen hinten anhängen?')) return
-    change((qs) => [...qs, ...SAMPLE_QUESTIONS.map((p) => newQuestion(p))])
+    change((qs) => [...qs, ...(noAnswer ? SAMPLE_PROMPTS : SAMPLE_QUESTIONS).map((p) => newQuestion(p))])
   }
 
   const upload = async (q: Question, file: File | undefined) => {
@@ -138,10 +140,21 @@ export default function QuizEditor({ gameId, onClose }: { gameId: string; onClos
       <section className="card">
         <h2>Liste einfügen</h2>
         <p className="hint">
-          Eine Zeile pro {label}: <code>{label} | Antwort | Zusatzinfo</code>. Aus Excel oder Google Sheets kopierte Zeilen (Spalten
-          Frage, Antwort, Info) funktionieren direkt.
+          {noAnswer ? (
+            <>Eine Zeile pro {label}. Aus Excel oder Google Sheets kopierte Zeilen funktionieren direkt.</>
+          ) : (
+            <>
+              Eine Zeile pro {label}: <code>{label} | Antwort | Zusatzinfo</code>. Aus Excel oder Google Sheets kopierte Zeilen (Spalten
+              Frage, Antwort, Info) funktionieren direkt.
+            </>
+          )}
         </p>
-        <textarea rows={5} value={paste} onChange={(e) => setPaste(e.target.value)} placeholder={`${label} | Antwort | Zusatzinfo (optional)`} />
+        <textarea
+          rows={5}
+          value={paste}
+          onChange={(e) => setPaste(e.target.value)}
+          placeholder={noAnswer ? label : `${label} | Antwort | Zusatzinfo (optional)`}
+        />
         <div className="row">
           <button className="primary" disabled={!parsedCount} onClick={() => importList(false)}>
             {parsedCount ? `${parsedCount} anhängen` : 'Anhängen'}
@@ -150,7 +163,7 @@ export default function QuizEditor({ gameId, onClose }: { gameId: string; onClos
             Alle ersetzen
           </button>
           <span className="grow" />
-          <button onClick={loadSamples}>Beispielfragen laden</button>
+          {!plainList && <button onClick={loadSamples}>Beispielfragen laden</button>}
         </div>
       </section>
 
@@ -161,7 +174,7 @@ export default function QuizEditor({ gameId, onClose }: { gameId: string; onClos
             <b className="num">{pad(i + 1)}</b>
             <textarea
               className="grow"
-              rows={2}
+              rows={plainList ? 1 : 2}
               value={q.question}
               placeholder={label}
               onChange={(e) => update(q.id, { question: e.target.value })}
@@ -175,22 +188,28 @@ export default function QuizEditor({ gameId, onClose }: { gameId: string; onClos
               </button>
             </div>
           </div>
-          <div className="row tight">
-            <span className="num" />
-            <input className="grow" value={q.answer} placeholder="Antwort" onChange={(e) => update(q.id, { answer: e.target.value })} />
-          </div>
-          <div className="row tight">
-            <span className="num" />
-            <input className="grow" value={q.info} placeholder="Zusatzinfo (optional)" onChange={(e) => update(q.id, { info: e.target.value })} />
-          </div>
+          {!noAnswer && (
+            <>
+              <div className="row tight">
+                <span className="num" />
+                <input className="grow" value={q.answer} placeholder="Antwort" onChange={(e) => update(q.id, { answer: e.target.value })} />
+              </div>
+              <div className="row tight">
+                <span className="num" />
+                <input className="grow" value={q.info} placeholder="Zusatzinfo (optional)" onChange={(e) => update(q.id, { info: e.target.value })} />
+              </div>
+            </>
+          )}
           <div className="row image-row">
             <span className="num" />
-            {q.imagePath && <Thumb path={q.imagePath} />}
+            {!plainList && q.imagePath && <Thumb path={q.imagePath} />}
+            {!plainList && (
             <label className="file-btn">
               {q.imagePath ? 'Bild ändern' : 'Bild hinzufügen'}
               <input type="file" accept="image/*" onChange={(e) => void upload(q, e.target.files?.[0])} />
             </label>
-            {q.imagePath && (
+            )}
+            {!plainList && q.imagePath && (
               <button
                 onClick={() => {
                   void questionStore.removeImage(q.imagePath!)

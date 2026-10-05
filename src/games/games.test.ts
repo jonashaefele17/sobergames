@@ -6,6 +6,8 @@ import { clockOffset } from '../lib/clock'
 import { GAMES, gameKind, gameName } from './catalog'
 import { formatClock, formatStopwatch } from './common/time'
 import { addRound, hasEntries, reached, removeRound, scoreData, setShot, setShotCount, setTarget, teamShots, totals, undoRound } from './score/logic'
+import { difference, measureData, measureTotals, setItems, setWeight } from './measure/logic'
+import { awarded, awardTotals, toggleAward } from './prompt/logic'
 import { setTime, start, stop, stopwatchData } from './stopwatch/logic'
 
 const play = (id: string): State => act.startPlay(id)(act.initialState())
@@ -155,5 +157,53 @@ describe('Gemeinsame Uhr', () => {
     ]
     expect(clockOffset(samples)).toBe(5000)
     expect(clockOffset([])).toBe(0)
+  })
+})
+
+describe('Wer würde eher: Punkt je Frage und Team', () => {
+  it('umschalten, mehrere Teams pro Frage, Summe und Wertung', () => {
+    let s = play('wer-wuerde-eher')
+    const [a, b, c] = ids(s)
+    s = toggleAward(0, a)(s)
+    s = toggleAward(0, b)(s)
+    s = toggleAward(1, a)(s)
+    s = toggleAward(1, c)(s)
+    s = toggleAward(1, c)(s) // wieder weg
+    expect(awarded(s, 0)).toEqual([a, b])
+    expect(awarded(s, 1)).toEqual([a])
+    expect(awarded(s, 5)).toEqual([])
+    expect(awardTotals(s)).toEqual({ [a]: 2, [b]: 1, [c]: 0 })
+    s = act.endPlay(awardTotals(s))(s)
+    expect(s.games.find((g) => g.id === 'wer-wuerde-eher')?.result?.places).toEqual([[a], [b], [c]])
+  })
+})
+
+describe('Perfect Cut: Differenzen', () => {
+  it('Differenz je Objekt, Summe erst wenn alles gewogen ist, kleinste gewinnt', () => {
+    let s = play('perfect-cut')
+    const [a, b, c] = ids(s)
+    const x = { id: 'x', name: 'Birne' }
+    const y = { id: 'y', name: 'Apfel' }
+    s = setItems([x, y])(s)
+    expect(setItems([x, y])(s).play.data.measure).toBe(s.play.data.measure) // unverändert: kein neuer Stand
+
+    s = setWeight(x.id, a, 0, 102)(s)
+    expect(difference(measureData(s), x.id, a)).toBeNull() // zweite Hälfte fehlt
+    s = setWeight(x.id, a, 1, 98.5)(s)
+    expect(difference(measureData(s), x.id, a)).toBe(3.5)
+    expect(measureTotals(measureData(s), ids(s))).toEqual({}) // Apfel fehlt noch
+
+    s = setWeight(y.id, a, 0, 80)(setWeight(y.id, a, 1, 81)(s))
+    for (const [item, w0, w1] of [[x.id, 100, 100], [y.id, 70, 76]] as const) s = setWeight(item, b, 0, w0)(setWeight(item, b, 1, w1)(s))
+    expect(measureTotals(measureData(s), ids(s))).toEqual({ [a]: 4.5, [b]: 6 })
+
+    const ended = act.endPlayRanked(measureTotals(measureData(s), ids(s)), true)(s)
+    expect(ended.games.find((g) => g.id === 'perfect-cut')?.result?.places).toEqual([[a], [b], [c]])
+
+    // Objekt im Setup gelöscht und eins ergänzt: alte Werte bleiben, die des gelöschten fallen weg
+    s = setItems([x, { id: 'z', name: 'Banane' }])(s)
+    expect(measureData(s).weights[y.id]).toBeUndefined()
+    expect(difference(measureData(s), x.id, a)).toBe(3.5)
+    expect(measureTotals(measureData(s), ids(s))).toEqual({}) // Banane fehlt noch
   })
 })

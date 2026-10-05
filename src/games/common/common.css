@@ -30,6 +30,52 @@
   color: rgba(255, 255, 255, 0.6);
 }
 
+/* ---------- Zwischenstand am unteren Rand der Spielseite (Beamer) ---------- */
+
+.round-bar {
+  flex: none;
+  display: flex;
+  gap: calc(var(--u) * 1);
+}
+
+.round-bar-item {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: calc(var(--u) * 0.8);
+  padding: calc(var(--u) * 0.6) calc(var(--u) * 1.2) calc(var(--u) * 0.4);
+  border-radius: calc(var(--u) * 0.6);
+  border: 1px solid var(--line);
+  border-left: calc(var(--u) * 0.5) solid var(--team);
+  background: color-mix(in srgb, var(--team) 12%, var(--navy-deep));
+  font-size: calc(var(--u) * 2.2);
+  transition:
+    background var(--t-mid) var(--ease-out),
+    border-color var(--t-mid) var(--ease-out),
+    box-shadow var(--t-mid) var(--ease-out);
+}
+
+.round-bar-item.on {
+  background: color-mix(in srgb, var(--team) 55%, var(--navy-deep));
+  border-color: var(--team);
+  box-shadow: 0 0 calc(var(--u) * 2.5) color-mix(in srgb, var(--team) 50%, transparent);
+}
+
+.round-bar-item .rname {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.round-bar-item .rpts {
+  font-size: calc(var(--u) * 3.2);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
 /* ---------- Timer im Regiepult ---------- */
 
 .host .host-timer {

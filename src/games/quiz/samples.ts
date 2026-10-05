@@ -38,3 +38,17 @@ export const SAMPLE_QUESTIONS: ParsedQuestion[] = [
   { question: 'Bei wie viel Grad Celsius siedet Wasser auf Meereshöhe?', answer: '100 °C', info: '' },
   { question: 'Wie viele Kontinente gibt es?', answer: '7', info: 'Nach gängiger Zählung' },
 ]
+
+/** Beispiel-Aussagen für „Wer würde eher“ zum Testen. */
+export const SAMPLE_PROMPTS: ParsedQuestion[] = [
+  'Wer würde eher einen Marathon ohne Training laufen?',
+  'Wer würde eher im Lotto gewinnen und den Schein verlieren?',
+  'Wer würde eher eine Woche ohne Handy überleben?',
+  'Wer würde eher bei einer Quizshow die Millionenfrage knacken?',
+  'Wer würde eher den eigenen Geburtstag vergessen?',
+  'Wer würde eher spontan auswandern?',
+  'Wer würde eher im Supermarkt nach einem Mitarbeiter gefragt werden?',
+  'Wer würde eher einen Zombie-Ausbruch überleben?',
+  'Wer würde eher beim Karaoke die Bühne nicht mehr hergeben?',
+  'Wer würde eher verschlafen, wenn es wirklich darauf ankommt?',
+].map((question) => ({ question, answer: '', info: '' }))

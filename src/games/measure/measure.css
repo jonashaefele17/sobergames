@@ -1,0 +1,114 @@
+/* ---------- Beamer ---------- */
+
+.measure {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  align-content: center;
+  gap: calc(var(--u) * 0.8);
+}
+
+.m-team {
+  padding: calc(var(--u) * 0.6) calc(var(--u) * 1) calc(var(--u) * 0.4);
+  border-bottom: calc(var(--u) * 0.4) solid var(--team);
+  font-size: calc(var(--u) * 2.6);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.m-item {
+  display: flex;
+  align-items: center;
+  font-size: calc(var(--u) * 2.8);
+  color: rgba(255, 255, 255, 0.85);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.m-item.total {
+  color: var(--gold);
+  letter-spacing: 0.1em;
+}
+
+.m-cell {
+  min-height: calc(var(--u) * 6.4);
+  display: grid;
+  place-items: center;
+  text-align: center;
+  border-radius: calc(var(--u) * 0.8);
+  border: 1px solid var(--line);
+  background: var(--glass);
+  transition:
+    border-color var(--t-slow) var(--ease-out),
+    background var(--t-slow) var(--ease-out);
+}
+
+.m-cell.best {
+  border-color: color-mix(in srgb, var(--team) 80%, transparent);
+  background: color-mix(in srgb, var(--team) 22%, var(--navy));
+}
+
+.m-diff {
+  display: block;
+  font-size: calc(var(--u) * 3.6);
+  line-height: 1;
+}
+
+.m-pair {
+  display: block;
+  font-family: var(--text);
+  letter-spacing: 0;
+  font-size: calc(var(--u) * 1.2);
+  color: var(--muted);
+}
+
+.m-open {
+  color: var(--muted);
+  font-size: calc(var(--u) * 2.4);
+}
+
+.m-cell.total {
+  min-height: calc(var(--u) * 8);
+  margin-top: calc(var(--u) * 0.8);
+  font-size: calc(var(--u) * 5);
+}
+
+.m-cell.total.best {
+  border-color: rgba(var(--gold-rgb), 0.8);
+  box-shadow: 0 0 calc(var(--u) * 3) rgba(var(--gold-rgb), 0.25);
+}
+
+.m-cell.total small {
+  font-size: 0.4em;
+  margin-left: 0.25em;
+  color: var(--muted);
+}
+
+/* ---------- Regiepult ---------- */
+
+.host .measure-row input {
+  width: 72px;
+  padding: 8px 6px;
+  text-align: center;
+}
+
+.host .measure-row .diff {
+  width: 64px;
+  text-align: right;
+  color: var(--gold-light);
+  font-weight: 600;
+  flex: none;
+}
+
+.host .item-name {
+  font-weight: 600;
+}
+
+.host .round-score.wide {
+  width: auto;
+  min-width: 64px;
+  text-align: right;
+}

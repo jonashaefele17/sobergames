@@ -21,7 +21,7 @@ export function HostTimer({ state, overText = 'Zeit um – weiterspielen, solang
     <div className={`host-timer ${level}`}>
       <div className="time">
         {left < 0 && '+'}
-        {formatClock(left)}
+        {formatClock(left > 0 ? Math.ceil(left / 1000) * 1000 : left)}
       </div>
       <div className="hint">{left <= 0 ? overText : running ? 'läuft' : 'pausiert'}</div>
       <div className="row">

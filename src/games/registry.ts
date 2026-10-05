@@ -3,6 +3,10 @@ import type { Game, State } from '../store/types'
 import type { GameKind } from './catalog'
 import CountdownHost from './countdown/CountdownHost'
 import CountdownScene from './countdown/CountdownScene'
+import MeasureHost from './measure/MeasureHost'
+import MeasureScene from './measure/MeasureScene'
+import PromptHost from './prompt/PromptHost'
+import PromptScene from './prompt/PromptScene'
 import QuizEditor from './quiz/QuizEditor'
 import QuizHost from './quiz/QuizHost'
 import QuizScene from './quiz/QuizScene'
@@ -30,4 +34,6 @@ export const KINDS: Record<GameKind, KindModule> = {
   score: { label: 'Punktetafel', Scene: ScoreScene, Host: ScoreHost },
   countdown: { label: 'Countdown', Scene: CountdownScene, Host: CountdownHost },
   stopwatch: { label: 'Stoppuhr', Scene: StopwatchScene, Host: StopwatchHost },
+  prompt: { label: 'Fragenrunde', Scene: PromptScene, Host: PromptHost, Editor: QuizEditor, dataLabel: 'Fragen' },
+  measure: { label: 'Messen', Scene: MeasureScene, Host: MeasureHost, Editor: QuizEditor, dataLabel: 'Objekte' },
 }

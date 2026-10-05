@@ -34,6 +34,8 @@ Jedes Spiel mit eigener Seite startet im Spiele-Tab über **„Spiel starten“*
 | Punktetafel | Scribble Rush, Mein Team kann | Punkte je Team eintragen, „Runde buchen“ |
 | Stoppuhr | Ex oder zieh | je Team Start/Stopp, kürzeste Zeit gewinnt |
 | Countdown | Build it | Timer läuft groß auf dem Beamer, danach Werte eintragen |
+| Fragenrunde | Wer würde eher | Frage zeigen, je Team den Punkt antippen, eigene Fragenliste ohne Antworten |
+| Messen | Perfect Cut | Objekte im Setup anlegen („Objekte bearbeiten“), im Spiel je Team beide Hälften in Gramm eintragen, kleinste Gesamtdifferenz gewinnt |
 | Buzzer-Quiz | Allgemeinwissen, Guess the Location, Songs erraten | siehe unten |
 
 Jede Buchung lässt sich rückgängig machen oder einzeln löschen. Zielpunktzahl, Zahl der Versuche und Timer-Voreinstellung stehen je Spiel in `src/games/catalog.ts`. Kippmoment (Schlechtwetter-Variante von Arschbolzen) hat keine Spielseite: Dort wird nur der Sieger im Spiele-Tab eingetragen.

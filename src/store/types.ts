@@ -74,6 +74,16 @@ export interface PlayData {
   stopwatch?: StopwatchData
   /** eingetragene Messwerte je Team, z. B. Turmhöhe */
   values?: Record<string, number>
+  /** Fragenrunde: je Frage (Index) die Teams, die den Punkt bekommen */
+  awards?: Record<number, string[]>
+  measure?: MeasureData
+}
+
+/** Messen: je Objekt und Team zwei Werte (z. B. Gewichte der beiden Hälften) */
+export interface MeasureData {
+  items: { id: string; name: string }[]
+  /** weights[objektId][teamId] = [erste, zweite Hälfte] */
+  weights: Record<string, Record<string, [number | null, number | null]>>
 }
 
 export interface Play {
