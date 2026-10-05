@@ -67,15 +67,19 @@ export function SongStage({ audio, stages }: { audio: AudioCue; stages: number[]
         {stages.map((s, i) => (
           <div key={i} className={`stage${i < audio.stage ? ' done' : i === audio.stage ? ' current' : ''}`}>
             <span className="len">{fmt(s)}</span>
-            {i === audio.stage && running?.duration != null && (
-              <motion.span
-                key={running.nonce}
-                className="fill"
-                initial={{ scaleX: 0 }}
-                animate={{ scaleX: 1 }}
-                transition={{ duration: running.duration, ease: 'linear' }}
-              />
-            )}
+            {/* die Felder stehen für die Abschnitte des Songs und füllen sich der Reihe nach */}
+            <AnimatePresence>
+              {i <= audio.stage && running?.duration != null && (
+                <motion.span
+                  key={running.nonce}
+                  className="fill"
+                  initial={{ scaleX: 0, opacity: 1 }}
+                  animate={{ scaleX: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ scaleX: { delay: stages[i - 1] ?? 0, duration: s - (stages[i - 1] ?? 0), ease: 'linear' }, opacity: { duration: 0.5 } }}
+                />
+              )}
+            </AnimatePresence>
           </div>
         ))}
       </div>

@@ -11,6 +11,7 @@ import { HostTimer } from '../common/HostTimer'
 import { mediaUrl } from '../common/media'
 import { questionStore, type Question } from '../quiz/questionStore'
 import { answerStore } from './answerStore'
+import NumberInput from './NumberInput'
 import { adjustPoints, estimateData, estimateTotals, formatNumber, parseNumber, resetQuestion, revealGuess, revealSolution, setMode, setSubmitted } from './logic'
 
 const run = (fn: (s: State) => State) => gameStore.update(fn)
@@ -179,12 +180,7 @@ export default function EstimateHost({ state, game }: { state: State; game: Game
                 <div key={t.id} className="row tight value-row" style={teamStyle(t.color)}>
                   <span className="dot" />
                   <span className="grow">{t.name}</span>
-                  <input
-                    inputMode="decimal"
-                    placeholder="Zahl"
-                    value={manual[t.id] ?? ''}
-                    onChange={(e) => setManual((m) => ({ ...m, [t.id]: e.target.value }))}
-                  />
+                  <NumberInput placeholder="Zahl" value={manual[t.id] ?? ''} onChange={(text) => setManual((m) => ({ ...m, [t.id]: text }))} />
                   <button
                     disabled={parseNumber(manual[t.id] ?? '') === null}
                     onClick={() => {

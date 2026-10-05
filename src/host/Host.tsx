@@ -562,6 +562,8 @@ export default function Host() {
   const PlayHost = playing ? KINDS[gameKind(playing)].Host : undefined
   const Editor = editing ? KINDS[gameDef(editing).kind].Editor : undefined
   const tabs = TABS.filter(([key]) => key !== 'play' || playing)
+  // ohne laufendes Spiel gibt es den Tab „Spiel“ nicht: nach dem Beenden geht „Spiele“ auf
+  const shown: Tab = tab === 'play' && !playing ? 'games' : tab
 
   const start = (gameId: string) => {
     if (state.play.gameId !== gameId) {
@@ -597,19 +599,19 @@ export default function Host() {
 
       <nav className="tabs">
         {tabs.map(([key, label]) => (
-          <button key={key} className={tab === key ? 'on' : ''} onClick={() => setTab(key)}>
+          <button key={key} className={shown === key ? 'on' : ''} onClick={() => setTab(key)}>
             {label}
           </button>
         ))}
       </nav>
 
-      {tab === 'draw' && <DrawPanel state={state} />}
-      {tab === 'games' && <GamesPanel state={state} onStart={start} />}
-      {tab === 'play' && (playing && PlayHost ? <PlayHost state={state} game={playing} /> : <p className="hint">Kein Spiel läuft.</p>)}
-      {tab === 'buzzer' && <BuzzerPanel state={state} />}
-      {tab === 'setup' && <SetupPanel state={state} onEdit={setEditing} />}
+      {shown === 'draw' && <DrawPanel state={state} />}
+      {shown === 'games' && <GamesPanel state={state} onStart={start} />}
+      {shown === 'play' && playing && PlayHost && <PlayHost state={state} game={playing} />}
+      {shown === 'buzzer' && <BuzzerPanel state={state} />}
+      {shown === 'setup' && <SetupPanel state={state} onEdit={setEditing} />}
       {editing && Editor && <Editor gameId={editing} onClose={() => setEditing(null)} />}
-      {tab === 'reset' && <ResetPanel state={state} />}
+      {shown === 'reset' && <ResetPanel state={state} />}
 
       <footer className="row">
         <a href="#/" target="_blank" rel="noreferrer">

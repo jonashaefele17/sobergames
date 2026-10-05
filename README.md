@@ -53,12 +53,12 @@ Allgemeinwissen, Guess the Location und Songs erraten sind **Buzzer-Quiz**-Spiel
 
 Bei **Guess the Location** trägst du pro Eintrag nur den **Ort (Lösung)** und darunter die **Hinweise** ein (Bild oder Text). Der erste Hinweis erscheint sofort, die weiteren deckst du im Tab „Spiel“ einzeln auf; der neueste steht groß, die früheren klein daneben.
 
-Bei **Songs erraten** trägst du pro Eintrag den **Song (Lösung)** ein, wählst die Datei aus dem Medienordner und gibst optional „Start bei Sekunde“ an. Im Tab „Spiel“ läuft nach „Song 1 zeigen“ noch nichts: Du spielst die Stufen selbst an (**0,1 s / 0,5 s / 2 s / 8 s / 15 s**, änderbar in `src/games/catalog.ts`), mit „Nochmal“, „Stopp“ und „Song ausspielen“. Beim Buzz stoppt die Musik von selbst. Der Ton kommt aus dem **Beamer-Fenster**; dort muss wie beim Countdown einmal geklickt oder eine Taste gedrückt worden sein.
+Bei **Songs erraten** trägst du pro Eintrag den **Song (Lösung)** ein, wählst die Datei aus dem Medienordner und gibst optional „Start bei Sekunde“ an. Stille am Dateianfang wird von selbst übersprungen; die Sekunden zählen ab dem ersten hörbaren Ton. Im Tab „Spiel“ läuft nach „Song 1 zeigen“ noch nichts: Du spielst die Stufen selbst an (**0,1 s / 0,5 s / 2 s / 8 s / 15 s**, änderbar in `src/games/catalog.ts`), mit „Nochmal“, „Stopp“ und „Song ausspielen“. Auf dem Beamer füllen sich die Stufen-Felder der Reihe nach, das neue Stück beginnt also sichtbar erst im letzten Feld. Beim Buzz stoppt die Musik von selbst. Der Ton kommt aus dem **Beamer-Fenster**; dort muss wie beim Countdown einmal geklickt oder eine Taste gedrückt worden sein.
 
 ### Schätzfragen
 
 1. **Fragen pflegen:** Setup → „Fragen bearbeiten“, eine Zeile pro Frage: `Frage | Lösung als Zahl | Zusatzinfo` (z. B. Einheit oder Quelle).
-2. **Frage zeigen:** Die Teams tippen ihre Schätzung auf ihrem Handy ein (dieselbe Seite wie der Buzzer) und können sie ändern, bis du **„Eingabe schließen“** drückst. Im Regiepult siehst du nur, wer abgegeben hat.
+2. **Frage zeigen:** Die Teams tippen ihre Schätzung auf ihrem Handy ein (dieselbe Seite wie der Buzzer) (mit Tausenderpunkten beim Tippen) und können sie ändern, bis du **„Eingabe schließen“** drückst. Im Regiepult siehst du nur, wer abgegeben hat.
 3. **Aufdecken:** Je Team einzeln in beliebiger Reihenfolge oder „Alle aufdecken“, danach **„Lösung aufdecken“**.
 4. **Wertung:** Standard ist 1 Punkt für das nächste Team, bei gleichem Abstand für beide. Umschaltbar auf „Abgestuft 2 / 1“. Punkte lassen sich mit ± korrigieren; fällt ein Handy aus, trägst du die Schätzung von Hand ein.
 
@@ -75,7 +75,7 @@ public/media/schaetzfragen/        Bilder zu einzelnen Fragen
 public/media/songs-erraten/        MP3s
 ```
 
-1. Dateien in den Ordner des Spiels legen. Bilder vorher auf etwa 1600 px Breite verkleinern.
+1. Dateien in den Ordner des Spiels legen. Bilder vorher auf etwa 1600 px Breite verkleinern. Songs mit `npm run songs:trim` auf 40 s kürzen (andere Länge: `-- --seconds 30`, späterer Einstieg: `-- --start 45`); die Originale landen in `originale/` außerhalb des Repos.
 2. Committen und pushen.
 3. Nach dem Deploy stehen sie im Editor des Spiels zur Auswahl („Bild wählen“, „+ Bild-Hinweis“ bzw. „Song wählen“).
 

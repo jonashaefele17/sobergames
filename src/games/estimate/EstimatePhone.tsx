@@ -5,6 +5,7 @@ import '../../buzzer/buzzer.css'
 import { SPRING, teamStyle } from '../../lib/motion'
 import type { State, Team } from '../../store/types'
 import { answerStore } from './answerStore'
+import NumberInput from './NumberInput'
 import { estimateData, estimateTotals, formatNumber, parseNumber } from './logic'
 
 /** Eingabe einer Frage; wird je Frage neu angelegt, damit Feld und Abgabe leer beginnen. */
@@ -44,14 +45,7 @@ function Entry({ token, open }: { token: string; open: boolean }) {
       }}
     >
       <label htmlFor="estimate-input">Eure Schätzung</label>
-      <input
-        id="estimate-input"
-        inputMode="decimal"
-        autoComplete="off"
-        placeholder="Zahl eingeben"
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-      />
+      <NumberInput id="estimate-input" placeholder="Zahl eingeben" value={text} onChange={setText} />
       <button type="submit" disabled={value === null || busy}>
         {sent === null ? 'Abschicken' : 'Ändern'}
       </button>

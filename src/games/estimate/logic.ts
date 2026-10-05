@@ -22,6 +22,19 @@ export function parseNumber(text: string): number | null {
 export const formatNumber = (n: number) => n.toLocaleString('de-DE', { maximumFractionDigits: 6 })
 
 /**
+ * Setzt beim Tippen Tausenderpunkte: „84000000“ → „84.000.000“, „1250,5“ →
+ * „1.250,5“. Alles außer Ziffern, dem ersten Komma und einem Minus am Anfang
+ * fällt weg; ein Komma am Ende bleibt stehen, damit man weitertippen kann.
+ */
+export function groupDigits(text: string): string {
+  const sign = text.trim().startsWith('-') ? '-' : ''
+  const clean = text.replace(/[^\d,]/g, '')
+  const comma = clean.indexOf(',')
+  const whole = (comma < 0 ? clean : clean.slice(0, comma)).replace(/^0+(?=\d)/, '').replace(/\B(?=(\d{3})+$)/g, '.')
+  return comma < 0 ? sign + whole : `${sign}${whole || '0'},${clean.slice(comma + 1).replace(/,/g, '')}`
+}
+
+/**
  * Punkte für eine Frage. `nearest`: 1 Punkt für die kleinste Abweichung.
  * `graded`: 2 für die kleinste, 1 für die zweitkleinste. Gleicher Abstand
  * heißt gleiche Punkte; Teams ohne Schätzung bekommen nichts.

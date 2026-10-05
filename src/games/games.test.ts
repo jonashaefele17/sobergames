@@ -5,7 +5,7 @@ import type { State } from '../store/types'
 import { clockOffset } from '../lib/clock'
 import { GAMES, gameKind, gameName } from './catalog'
 import { formatClock, formatStopwatch } from './common/time'
-import { adjustPoints, award, estimateData, estimateTotals, parseNumber, resetQuestion, revealGuess, revealSolution, setMode, setSubmitted } from './estimate/logic'
+import { adjustPoints, award, estimateData, estimateTotals, groupDigits, parseNumber, resetQuestion, revealGuess, revealSolution, setMode, setSubmitted } from './estimate/logic'
 import { addRound, hasEntries, reached, removeRound, scoreData, setShot, setShotCount, setTarget, teamShots, totals, undoRound } from './score/logic'
 import { difference, measureData, measureTotals, setItems, setWeight } from './measure/logic'
 import { awarded, awardTotals, toggleAward } from './prompt/logic'
@@ -219,6 +219,30 @@ describe('Schätzfragen', () => {
     expect(parseNumber(' 42 ')).toBe(42)
     expect(parseNumber('')).toBeNull()
     expect(parseNumber('viel')).toBeNull()
+  })
+
+  it('setzt beim Tippen Tausenderpunkte und bleibt lesbar für parseNumber', () => {
+    const cases: [string, string, number | null][] = [
+      ['84000000', '84.000.000', 84_000_000],
+      ['1250,5', '1.250,5', 1250.5],
+      ['1250,', '1.250,', 1250],
+      ['007', '7', 7],
+      ['0', '0', 0],
+      ['-1250', '-1.250', -1250],
+      ['12a3', '123', 123],
+      ['1.2.5.0', '1.250', 1250],
+      [',5', '0,5', 0.5],
+      ['1,2,3', '1,23', 1.23],
+      ['', '', null],
+    ]
+    for (const [typed, shown, value] of cases) {
+      expect(groupDigits(typed)).toBe(shown)
+      expect(parseNumber(shown)).toBe(value)
+    }
+    // Ziffer für Ziffer getippt
+    let field = ''
+    for (const digit of '1234567') field = groupDigits(field + digit)
+    expect(field).toBe('1.234.567')
   })
 
   it('Nächster bekommt 1 Punkt, gleicher Abstand beide, ohne Schätzung nichts', () => {

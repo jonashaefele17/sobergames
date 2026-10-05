@@ -162,7 +162,9 @@
   background: var(--navy);
   color: var(--white);
   font-family: var(--display);
-  font-size: 56px;
+  /* lange Zahlen werden kleiner, statt aus dem Feld zu laufen */
+  font-size: min(56px, calc((min(100vw, 460px) - 76px) / (0.6 * var(--len, 1))));
+  transition: font-size var(--t-mid, 0.3s) var(--ease-out, ease-out);
   text-align: center;
   user-select: text;
   -webkit-user-select: text;

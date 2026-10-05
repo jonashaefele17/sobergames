@@ -7,6 +7,7 @@ import { mediaFiles, mediaFolder, mediaUrl } from '../common/media'
 import { parseQuestions } from './parse'
 import { newQuestion, questionStore, type Hint, type Question } from './questionStore'
 import { parseNumber } from '../estimate/logic'
+import NumberInput from '../estimate/NumberInput'
 import { SAMPLE_ESTIMATES, SAMPLE_PROMPTS, SAMPLE_QUESTIONS } from './samples'
 
 const pad = (n: number) => String(n).padStart(2, '0')
@@ -262,13 +263,16 @@ export default function QuizEditor({ gameId, onClose }: { gameId: string; onClos
           {!noAnswer && !answerOnly && (
             <div className="row tight">
               <span className="num" />
-              <input
-                className={`grow${numeric && q.answer && parseNumber(q.answer) === null ? ' invalid' : ''}`}
-                inputMode={numeric ? 'decimal' : undefined}
-                value={q.answer}
-                placeholder={numeric ? 'Lösung als Zahl, z. B. 1.250 oder 3,5' : 'Antwort'}
-                onChange={(e) => update(q.id, { answer: e.target.value })}
-              />
+              {numeric ? (
+                <NumberInput
+                  className={`grow${q.answer && parseNumber(q.answer) === null ? ' invalid' : ''}`}
+                  value={q.answer}
+                  placeholder="Lösung als Zahl, z. B. 1.250 oder 3,5"
+                  onChange={(answer) => update(q.id, { answer })}
+                />
+              ) : (
+                <input className="grow" value={q.answer} placeholder="Antwort" onChange={(e) => update(q.id, { answer: e.target.value })} />
+              )}
             </div>
           )}
           {!noAnswer && (
@@ -320,7 +324,7 @@ export default function QuizEditor({ gameId, onClose }: { gameId: string; onClos
                   </div>
                   {mediaUrl(q.audioPath) ? <audio controls preload="none" src={mediaUrl(q.audioPath)!} /> : <p className="warn">Diese Datei liegt nicht im Medienordner.</p>}
                   <div className="row tight value-row">
-                    <span className="grow hint">Start bei Sekunde</span>
+                    <span className="grow hint">Start bei Sekunde (ab dem ersten Ton)</span>
                     <input
                       type="number"
                       min={0}

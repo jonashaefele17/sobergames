@@ -6,6 +6,7 @@ import { GAMES, gameName } from '../catalog'
 import { describeBackup, parseBackup, type Backup } from '../../lib/backup'
 import { mediaFiles, mediaKind, mediaUrl } from '../common/media'
 import { parseQuestions } from './parse'
+import { firstSound } from './songPlayer'
 
 describe('Feste Spiele', () => {
   it('13 Spiele in der geplanten Reihenfolge, Allgemeinwissen auf Platz 9, Finale ist Mein Team kann', () => {
@@ -163,6 +164,17 @@ describe('Songs in Stufen', () => {
     const stages = GAMES.find((g) => g.id === 'songs-erraten')!.quiz!.stages!
     expect(stages).toEqual([0.1, 0.5, 2, 8, 15])
     expect([...stages].sort((a, b) => a - b)).toEqual(stages)
+  })
+
+  it('findet den ersten hörbaren Ton hinter der Stille am Dateianfang', () => {
+    const silent = new Float32Array(1000)
+    const late = new Float32Array(1000)
+    late.fill(0.2, 400)
+    late[100] = 0.004 // Rauschen unter der Schwelle
+    expect(firstSound([late])).toBe(400)
+    expect(firstSound([silent, late])).toBe(400)
+    expect(firstSound([silent])).toBe(0)
+    expect(firstSound([Float32Array.from([-0.5, 0, 0])])).toBe(0)
   })
 
   it('nach dem Zeigen läuft noch nichts', () => {

@@ -6,3 +6,6 @@ dist/
 
 # Arbeitsmaterial (Logo, Kontext), nicht im Repo
 context/
+
+# ungekürzte Songs, siehe scripts/trim-songs.mjs
+originale/
