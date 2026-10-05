@@ -6,7 +6,8 @@ import { gameDef } from '../catalog'
 import { mediaFiles, mediaFolder, mediaUrl } from '../common/media'
 import { parseQuestions } from './parse'
 import { newQuestion, questionStore, type Hint, type Question } from './questionStore'
-import { SAMPLE_PROMPTS, SAMPLE_QUESTIONS } from './samples'
+import { parseNumber } from '../estimate/logic'
+import { SAMPLE_ESTIMATES, SAMPLE_PROMPTS, SAMPLE_QUESTIONS } from './samples'
 
 const pad = (n: number) => String(n).padStart(2, '0')
 const SAVE_DELAY_MS = 600
@@ -24,30 +25,52 @@ function Thumb({ path }: { path: string }) {
 }
 
 /** Auswahl eines Bildes aus dem Medienordner des Spiels; noch nicht verwendete stehen oben. */
-function MediaPicker({ gameId, used, onPick, onClose }: { gameId: string; used: Set<string>; onPick: (path: string) => void; onClose: () => void }) {
-  const images = mediaFiles(gameId).filter((f) => f.kind === 'image')
+function MediaPicker({
+  gameId,
+  kind,
+  used,
+  onPick,
+  onClose,
+}: {
+  gameId: string
+  kind: 'image' | 'audio'
+  used: Set<string>
+  onPick: (path: string) => void
+  onClose: () => void
+}) {
+  const images = mediaFiles(gameId).filter((f) => f.kind === kind)
   const sorted = [...images].sort((a, b) => Number(used.has(a.path)) - Number(used.has(b.path)) || a.name.localeCompare(b.name))
   return (
     <div className="media-picker" onClick={onClose}>
       <div className="media-card" onClick={(e) => e.stopPropagation()}>
         <div className="row">
-          <h2 className="grow">Bild wählen</h2>
+          <h2 className="grow">{kind === 'audio' ? 'Song wählen' : 'Bild wählen'}</h2>
           <button onClick={onClose}>Abbrechen</button>
         </div>
         {sorted.length === 0 ? (
           <p className="warn">
-            Noch keine Bilder vorhanden. Lege sie im Repo in <code>{mediaFolder(gameId)}</code> ab und pushe; nach dem Deploy erscheinen sie
+            Noch keine {kind === 'audio' ? 'Songs' : 'Bilder'} vorhanden. Lege sie im Repo in <code>{mediaFolder(gameId)}</code> ab und pushe; nach dem Deploy erscheinen sie
             hier.
           </p>
         ) : (
-          <div className="media-grid">
-            {sorted.map((f) => (
-              <button key={f.path} className={`media-item${used.has(f.path) ? ' used' : ''}`} onClick={() => onPick(f.path)}>
-                <img src={mediaUrl(f.path)!} alt="" loading="lazy" />
-                <span>{f.name}</span>
-                {used.has(f.path) && <small>schon verwendet</small>}
-              </button>
-            ))}
+          <div className={kind === 'audio' ? 'media-list' : 'media-grid'}>
+            {sorted.map((f) =>
+              kind === 'audio' ? (
+                <div key={f.path} className={`media-audio${used.has(f.path) ? ' used' : ''}`}>
+                  <button className="grow" onClick={() => onPick(f.path)}>
+                    {f.name}
+                    {used.has(f.path) && <small>schon verwendet</small>}
+                  </button>
+                  <audio controls preload="none" src={mediaUrl(f.path)!} />
+                </div>
+              ) : (
+                <button key={f.path} className={`media-item${used.has(f.path) ? ' used' : ''}`} onClick={() => onPick(f.path)}>
+                  <img src={mediaUrl(f.path)!} alt="" loading="lazy" />
+                  <span>{f.name}</span>
+                  {used.has(f.path) && <small>schon verwendet</small>}
+                </button>
+              ),
+            )}
           </div>
         )}
       </div>
@@ -56,7 +79,7 @@ function MediaPicker({ gameId, used, onPick, onClose }: { gameId: string; used: 
 }
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error'
-type Picking = { questionId: string; target: 'image' | 'hint' } | null
+type Picking = { questionId: string; target: 'image' | 'hint' | 'audio' } | null
 
 /** Vollbild-Editor im Regiepult für die eigenen Inhalte eines Spiels. Speichert automatisch. */
 export default function QuizEditor({ gameId, onClose }: { gameId: string; onClose: () => void }) {
@@ -67,8 +90,10 @@ export default function QuizEditor({ gameId, onClose }: { gameId: string; onClos
   const withHints = Boolean(def.quiz?.hints)
   // nur die Lösung, keine eigene Frage: geraten wird über die Hinweise
   const answerOnly = Boolean(def.quiz?.answerOnly)
+  const numeric = Boolean(def.quiz?.numeric)
+  const withAudio = Boolean(def.quiz?.audio)
   // mit Hinweisen ersetzt deren Liste das einzelne Bild
-  const singleImage = !plainList && !withHints
+  const singleImage = !plainList && !withHints && !withAudio
   const [questions, setQuestions] = useState<Question[] | null>(null)
   const [paste, setPaste] = useState('')
   const [save, setSave] = useState<SaveState>('idle')
@@ -145,6 +170,7 @@ export default function QuizEditor({ gameId, onClose }: { gameId: string; onClos
   const pick = (path: string) => {
     if (!picking) return
     if (picking.target === 'image') update(picking.questionId, { imagePath: path })
+    else if (picking.target === 'audio') update(picking.questionId, { audioPath: path })
     else addHint(picking.questionId, { kind: 'image', value: path })
     setPicking(null)
   }
@@ -159,11 +185,11 @@ export default function QuizEditor({ gameId, onClose }: { gameId: string; onClos
 
   const loadSamples = () => {
     if (questions?.length && !confirm('Beispielfragen hinten anhängen?')) return
-    change((qs) => [...qs, ...(noAnswer ? SAMPLE_PROMPTS : SAMPLE_QUESTIONS).map((p) => newQuestion(p))])
+    change((qs) => [...qs, ...(noAnswer ? SAMPLE_PROMPTS : numeric ? SAMPLE_ESTIMATES : SAMPLE_QUESTIONS).map((p) => newQuestion(p))])
   }
 
   const parsedCount = paste.trim() ? parseQuestions(paste, answerOnly).length : 0
-  const used = new Set((questions ?? []).flatMap((q) => [q.imagePath, ...q.hints.filter((h) => h.kind === 'image').map((h) => h.value)]).filter((p): p is string => Boolean(p)))
+  const used = new Set((questions ?? []).flatMap((q) => [q.imagePath, q.audioPath, ...q.hints.filter((h) => h.kind === 'image').map((h) => h.value)]).filter((p): p is string => Boolean(p)))
   const format = answerOnly ? `${label} | Zusatzinfo` : noAnswer ? label : `${label} | Antwort | Zusatzinfo`
 
   return (
@@ -236,13 +262,19 @@ export default function QuizEditor({ gameId, onClose }: { gameId: string; onClos
           {!noAnswer && !answerOnly && (
             <div className="row tight">
               <span className="num" />
-              <input className="grow" value={q.answer} placeholder="Antwort" onChange={(e) => update(q.id, { answer: e.target.value })} />
+              <input
+                className={`grow${numeric && q.answer && parseNumber(q.answer) === null ? ' invalid' : ''}`}
+                inputMode={numeric ? 'decimal' : undefined}
+                value={q.answer}
+                placeholder={numeric ? 'Lösung als Zahl, z. B. 1.250 oder 3,5' : 'Antwort'}
+                onChange={(e) => update(q.id, { answer: e.target.value })}
+              />
             </div>
           )}
           {!noAnswer && (
             <div className="row tight">
               <span className="num" />
-              <input className="grow" value={q.info} placeholder="Zusatzinfo (optional)" onChange={(e) => update(q.id, { info: e.target.value })} />
+              <input className="grow" value={q.info} placeholder={numeric ? 'Einheit oder Zusatzinfo, z. B. Meter' : 'Zusatzinfo (optional)'} onChange={(e) => update(q.id, { info: e.target.value })} />
             </div>
           )}
           {withHints && (
@@ -278,6 +310,33 @@ export default function QuizEditor({ gameId, onClose }: { gameId: string; onClos
               </div>
             </div>
           )}
+          {withAudio && (
+            <div className="hint-list">
+              {q.audioPath ? (
+                <>
+                  <div className="row tight">
+                    <span className="grow file-name">{q.audioPath.split('/').pop()}</span>
+                    <button onClick={() => setPicking({ questionId: q.id, target: 'audio' })}>Song ändern</button>
+                  </div>
+                  {mediaUrl(q.audioPath) ? <audio controls preload="none" src={mediaUrl(q.audioPath)!} /> : <p className="warn">Diese Datei liegt nicht im Medienordner.</p>}
+                  <div className="row tight value-row">
+                    <span className="grow hint">Start bei Sekunde</span>
+                    <input
+                      type="number"
+                      min={0}
+                      step="0.1"
+                      inputMode="decimal"
+                      value={q.audioStart ?? 0}
+                      onChange={(e) => update(q.id, { audioStart: Math.max(0, Number(e.target.value) || 0) })}
+                    />
+                    <span className="unit">s</span>
+                  </div>
+                </>
+              ) : (
+                <button onClick={() => setPicking({ questionId: q.id, target: 'audio' })}>Song wählen</button>
+              )}
+            </div>
+          )}
           <div className="row image-row">
             <span className="num" />
             {singleImage && q.imagePath && <Thumb path={q.imagePath} />}
@@ -294,7 +353,9 @@ export default function QuizEditor({ gameId, onClose }: { gameId: string; onClos
       ))}
       {questions && <button onClick={() => change((qs) => [...qs, newQuestion()])}>+ {label} hinzufügen</button>}
 
-      {picking && <MediaPicker gameId={gameId} used={used} onPick={pick} onClose={() => setPicking(null)} />}
+      {picking && (
+        <MediaPicker gameId={gameId} kind={picking.target === 'audio' ? 'audio' : 'image'} used={used} onPick={pick} onClose={() => setPicking(null)} />
+      )}
     </div>
   )
 }

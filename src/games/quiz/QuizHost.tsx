@@ -56,10 +56,24 @@ export default function QuizHost({ state, game }: { state: State; game: Game }) 
     if (!q) return
     // der erste Hinweis erscheint sofort mit
     const first = q.hints[0] ? resolveHint(q.hints[0]) : null
-    run(act.showQuestion({ index: i, total: questions!.length, text: q.question, imageUrl: mediaUrl(q.imagePath), hints: first ? [first] : [] }))
+    const song = mediaUrl(q.audioPath)
+    if (q.audioPath && !song) setError('Der Song liegt nicht im Medienordner')
+    run(
+      act.showQuestion({
+        index: i,
+        total: questions!.length,
+        text: q.question,
+        imageUrl: mediaUrl(q.imagePath),
+        hints: first ? [first] : [],
+        // der Song wird gezeigt, aber noch nicht gespielt: die Stufen löst der Host aus
+        ...(song ? { audio: { url: song, start: q.audioStart ?? 0, stage: -1, nonce: 0, play: 'stop' as const } } : {}),
+      }),
+    )
     buzzerStore.startQuestion()
   }
 
+  const stages = def.quiz?.audio ? (def.quiz.stages ?? [1, 2, 4, 8, 16]) : null
+  const seconds = (s: number) => `${s.toLocaleString('de-DE')} s`
   const shownHints = quiz?.hints?.length ?? 0
   const nextHint = current?.hints[shownHints]
 
@@ -134,6 +148,24 @@ export default function QuizHost({ state, game }: { state: State; game: Game }) 
                 <small>{current.question ? 'Antwort' : 'Lösung'}</small> {current.answer || '—'}
               </div>
               {current.info && <div className="hint">{current.info}</div>}
+              {stages && quiz?.audio && (
+                <div className="song-controls">
+                  <div className="hint">
+                    {quiz.audio.stage < 0 ? 'Noch nichts gespielt' : `Stufe ${quiz.audio.stage + 1} / ${stages.length} · ${seconds(stages[quiz.audio.stage])}`}
+                  </div>
+                  <div className="row">
+                    {quiz.audio.stage + 1 < stages.length && (
+                      <button className="primary" onClick={() => run(act.cueAudio('stage', quiz.audio!.stage + 1))}>
+                        ▶ Stufe {quiz.audio.stage + 2} ({seconds(stages[quiz.audio.stage + 1])})
+                      </button>
+                    )}
+                    {quiz.audio.stage >= 0 && <button onClick={() => run(act.cueAudio('stage', quiz.audio!.stage))}>Nochmal</button>}
+                    <button onClick={() => run(act.cueAudio('stop'))}>Stopp</button>
+                  </div>
+                  <button onClick={() => run(act.cueAudio('full'))}>Song ausspielen</button>
+                </div>
+              )}
+              {stages && !quiz?.audio && <p className="warn">Zu diesem Eintrag ist kein Song gewählt.</p>}
               {current.hints.length > 0 && (
                 <div className="row">
                   <span className="hint grow">

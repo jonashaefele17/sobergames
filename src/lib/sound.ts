@@ -31,6 +31,9 @@ const subscribe = (listener: () => void) => {
   }
 }
 
+/** der Audio-Kontext dieses Fensters, sobald der Ton an ist (z. B. für Song-Schnipsel) */
+export const audioContext = (): AudioContext | null => (enabled ? ctx : null)
+
 /** ob der Ton in diesem Fenster an ist */
 export function useSoundEnabled(): boolean {
   return useSyncExternalStore(subscribe, () => enabled)

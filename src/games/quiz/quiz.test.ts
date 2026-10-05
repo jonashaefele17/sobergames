@@ -155,6 +155,41 @@ describe('Medien aus dem Repo', () => {
   })
 })
 
+describe('Songs in Stufen', () => {
+  const song = { url: 'media/songs-erraten/a.mp3', start: 12, stage: -1, nonce: 0, play: 'stop' as const }
+  const shown = act.showQuestion({ index: 0, total: 3, text: '', imageUrl: null, audio: song })(act.initialState())
+
+  it('die Stufen des Katalogs sind aufsteigend', () => {
+    const stages = GAMES.find((g) => g.id === 'songs-erraten')!.quiz!.stages!
+    expect(stages).toEqual([0.1, 0.5, 2, 8, 15])
+    expect([...stages].sort((a, b) => a - b)).toEqual(stages)
+  })
+
+  it('nach dem Zeigen läuft noch nichts', () => {
+    expect(shown.play.quiz!.audio).toEqual(song)
+  })
+
+  it('nächste Stufe, Wiederholen und Stopp zählen den Auslöser hoch und behalten die Startstelle', () => {
+    let s = act.cueAudio('stage', 0)(shown)
+    expect(s.play.quiz!.audio).toMatchObject({ stage: 0, nonce: 1, play: 'stage', start: 12 })
+    s = act.cueAudio('stage', 0)(s)
+    expect(s.play.quiz!.audio).toMatchObject({ stage: 0, nonce: 2, play: 'stage' })
+    s = act.cueAudio('stage', 1)(s)
+    expect(s.play.quiz!.audio).toMatchObject({ stage: 1, nonce: 3 })
+    s = act.cueAudio('stop')(s)
+    expect(s.play.quiz!.audio).toMatchObject({ stage: 1, nonce: 4, play: 'stop' })
+    s = act.cueAudio('full')(s)
+    expect(s.play.quiz!.audio).toMatchObject({ stage: 1, nonce: 5, play: 'full' })
+  })
+
+  it('der Song bleibt beim Auflösen erhalten, ohne Song passiert nichts', () => {
+    const answered = act.revealAnswer('Titel', null)(act.cueAudio('stage', 2)(shown))
+    expect(answered.play.quiz!.audio).toMatchObject({ stage: 2, nonce: 1 })
+    const plain = act.showQuestion({ index: 0, total: 1, text: 'F?', imageUrl: null })(act.initialState())
+    expect(act.cueAudio('stage', 0)(plain)).toBe(plain)
+  })
+})
+
 describe('Sicherung', () => {
   it('Sichern und Einlesen ergibt wieder denselben Stand und dieselben Inhalte', () => {
     let s = act.addPlayers(['A', 'B'])(act.initialState())

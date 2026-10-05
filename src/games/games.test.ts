@@ -5,6 +5,7 @@ import type { State } from '../store/types'
 import { clockOffset } from '../lib/clock'
 import { GAMES, gameKind, gameName } from './catalog'
 import { formatClock, formatStopwatch } from './common/time'
+import { adjustPoints, award, estimateData, estimateTotals, parseNumber, resetQuestion, revealGuess, revealSolution, setMode, setSubmitted } from './estimate/logic'
 import { addRound, hasEntries, reached, removeRound, scoreData, setShot, setShotCount, setTarget, teamShots, totals, undoRound } from './score/logic'
 import { difference, measureData, measureTotals, setItems, setWeight } from './measure/logic'
 import { awarded, awardTotals, toggleAward } from './prompt/logic'
@@ -205,5 +206,55 @@ describe('Perfect Cut: Differenzen', () => {
     expect(measureData(s).weights[y.id]).toBeUndefined()
     expect(difference(measureData(s), x.id, a)).toBe(3.5)
     expect(measureTotals(measureData(s), ids(s))).toEqual({}) // Banane fehlt noch
+  })
+})
+
+describe('Schätzfragen', () => {
+  it('liest Zahlen in deutscher und englischer Schreibweise', () => {
+    expect(parseNumber('1.250')).toBe(1250)
+    expect(parseNumber('3,5')).toBe(3.5)
+    expect(parseNumber('1.250,75')).toBe(1250.75)
+    expect(parseNumber('84.000.000')).toBe(84_000_000)
+    expect(parseNumber('1250.5')).toBe(1250.5)
+    expect(parseNumber(' 42 ')).toBe(42)
+    expect(parseNumber('')).toBeNull()
+    expect(parseNumber('viel')).toBeNull()
+  })
+
+  it('Nächster bekommt 1 Punkt, gleicher Abstand beide, ohne Schätzung nichts', () => {
+    expect(award({ a: 300, b: 350, c: 500 }, 330, 'nearest')).toEqual({ b: 1 })
+    expect(award({ a: 320, b: 340, c: 500 }, 330, 'nearest')).toEqual({ a: 1, b: 1 })
+    expect(award({ c: 500 }, 330, 'nearest')).toEqual({ c: 1 })
+    expect(award({}, 330, 'nearest')).toEqual({})
+  })
+
+  it('abgestuft: 2 für den Nächsten, 1 für den Zweitnächsten, Gleichstand teilt die Stufe', () => {
+    expect(award({ a: 300, b: 350, c: 500 }, 330, 'graded')).toEqual({ b: 2, a: 1 })
+    expect(award({ a: 320, b: 340, c: 500 }, 330, 'graded')).toEqual({ a: 2, b: 2, c: 1 })
+  })
+
+  it('Ablauf: Abgaben ohne Zahl, einzeln aufdecken, Lösung, Punkte, Umschalten, Korrektur', () => {
+    let s = play('schaetzfragen')
+    const [a, b, c] = ids(s)
+    s = setSubmitted([b, a])(s)
+    expect(estimateData(s).submitted).toEqual([a, b].sort())
+    expect(setSubmitted([a, b])(s)).toBe(s) // unverändert: kein neuer Stand
+    expect(estimateData(s).guesses).toEqual({}) // noch nichts öffentlich
+
+    s = revealGuess(b, 350)(s)
+    expect(estimateData(s).guesses).toEqual({ [b]: 350 }) // nur das aufgedeckte Team
+
+    s = revealSolution(0, 330, { [a]: 300, [b]: 350, [c]: 500 })(s)
+    expect(estimateData(s)).toMatchObject({ solution: 330, guesses: { [a]: 300, [b]: 350, [c]: 500 } })
+    expect(estimateTotals(s)).toEqual({ [a]: 0, [b]: 1, [c]: 0 })
+
+    s = setMode('graded', 0)(s) // laufende Frage wird neu gewertet
+    expect(estimateTotals(s)).toEqual({ [a]: 1, [b]: 2, [c]: 0 })
+    s = adjustPoints(c, 1)(s)
+    expect(estimateTotals(s)[c]).toBe(1)
+
+    s = resetQuestion(s) // nächste Frage: Punkte bleiben, Rest leer
+    expect(estimateData(s)).toMatchObject({ submitted: [], guesses: {}, solution: null, mode: 'graded' })
+    expect(estimateTotals(s)).toEqual({ [a]: 1, [b]: 2, [c]: 1 })
   })
 })

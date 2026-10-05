@@ -5,6 +5,7 @@ import { EASE_OUT, SPRING } from '../../lib/motion'
 import type { Game, State } from '../../store/types'
 import { gameDef, gameName } from '../catalog'
 import { TitleCard } from '../common/TitleCard'
+import { SongStage } from './SongStage'
 
 /** Beamer-Ansicht eines Buzzer-Quiz: Frage groß, Antwort nach der Auflösung. */
 export default function QuizScene({ state, game }: { state: State; game: Game }) {
@@ -26,7 +27,7 @@ export default function QuizScene({ state, game }: { state: State; game: Game })
           ) : (
             <motion.div
               key={`q-${quiz.index}`}
-              className={`quiz-stage${quiz.imageUrl || currentHint ? ' with-image' : ''}${imageFirst ? ' image-first' : ''}`}
+              className={`quiz-stage${quiz.imageUrl || currentHint ? ' with-image' : ''}${imageFirst ? ' image-first' : ''}${quiz.audio ? ' with-song' : ''}`}
               initial={{ opacity: 0, y: 40 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -30 }}
@@ -71,6 +72,7 @@ export default function QuizScene({ state, game }: { state: State; game: Game })
                   <img src={quiz.imageUrl} alt="" />
                 </motion.div>
               )}
+              {quiz.audio && <SongStage audio={quiz.audio} stages={def.quiz?.stages ?? [1, 2, 4, 8, 16]} />}
               <div className="quiz-text">
                 {quiz.text && <div className={`question${quiz.text.length > 110 ? ' long' : ''}`}>{quiz.text}</div>}
                 <AnimatePresence>

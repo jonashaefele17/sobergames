@@ -52,3 +52,17 @@ export const SAMPLE_PROMPTS: ParsedQuestion[] = [
   'Wer würde eher beim Karaoke die Bühne nicht mehr hergeben?',
   'Wer würde eher verschlafen, wenn es wirklich darauf ankommt?',
 ].map((question) => ({ question, answer: '', info: '' }))
+
+/** Beispiel-Schätzfragen zum Testen; die Antwort ist eine Zahl. */
+export const SAMPLE_ESTIMATES: ParsedQuestion[] = [
+  { question: 'Wie hoch ist der Eiffelturm mit Antenne?', answer: '330', info: 'Meter' },
+  { question: 'Wie viele Einwohner hat Deutschland ungefähr?', answer: '84.000.000', info: 'Einwohner' },
+  { question: 'Wie lang ist der Rhein?', answer: '1.233', info: 'Kilometer' },
+  { question: 'In welchem Jahr wurde das erste iPhone vorgestellt?', answer: '2007', info: '' },
+  { question: 'Wie viele Tasten hat ein Klavier?', answer: '88', info: 'Tasten' },
+  { question: 'Wie hoch ist die Zugspitze?', answer: '2.962', info: 'Meter' },
+  { question: 'Wie viele Länder gehören zur EU?', answer: '27', info: 'Mitgliedstaaten' },
+  { question: 'Wie schwer ist ein Fußball bei Spielbeginn höchstens?', answer: '450', info: 'Gramm' },
+  { question: 'Wie viele Stufen führen auf den Kölner Dom (Südturm)?', answer: '533', info: 'Stufen' },
+  { question: 'Wie weit ist der Mond im Mittel von der Erde entfernt?', answer: '384.400', info: 'Kilometer' },
+]

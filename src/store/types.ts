@@ -26,6 +26,19 @@ export interface Game {
   variant?: string
 }
 
+/**
+ * Was der Beamer vom Song abspielen soll. `nonce` zählt bei jedem Auslöser hoch;
+ * `stage` ist die zuletzt gespielte Stufe (-1 = noch keine).
+ */
+export interface AudioCue {
+  url: string
+  /** Startstelle im Song in Sekunden */
+  start: number
+  stage: number
+  nonce: number
+  play: 'stage' | 'full' | 'stop'
+}
+
 export interface ShownHint {
   kind: 'image' | 'text'
   value: string
@@ -40,6 +53,8 @@ export interface QuizView {
   imageUrl: string | null
   /** bisher aufgedeckte Hinweise; bei Bildern steht in value die anzeigbare URL */
   hints?: ShownHint[]
+  /** Song zum Eintrag und der letzte Abspiel-Auslöser */
+  audio?: AudioCue
   answer: string | null
   info: string | null
   phase: 'question' | 'answer'
@@ -84,6 +99,22 @@ export interface PlayData {
   /** Fragenrunde: je Frage (Index) die Teams, die den Punkt bekommen */
   awards?: Record<number, string[]>
   measure?: MeasureData
+  estimate?: EstimateData
+}
+
+/** Schätzfragen: `nearest` = 1 Punkt für die kleinste Abweichung, `graded` = 2 / 1 */
+export type EstimateMode = 'nearest' | 'graded'
+
+export interface EstimateData {
+  mode: EstimateMode
+  /** Teams, die abgegeben haben – ohne die Zahl */
+  submitted: string[]
+  /** nur die schon aufgedeckten Schätzungen */
+  guesses: Record<string, number>
+  /** erst nach dem Aufdecken der Lösung */
+  solution: number | null
+  /** Punkte je Frage (Index) und Team, dazu Korrekturen von Hand */
+  points: Record<string, Record<string, number>>
 }
 
 /** Messen: je Objekt und Team zwei Werte (z. B. Gewichte der beiden Hälften) */

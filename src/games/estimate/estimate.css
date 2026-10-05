@@ -1,0 +1,196 @@
+/* ---------- Beamer ---------- */
+
+.estimate {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: calc(var(--u) * 2);
+}
+
+.est-top {
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--u) * 3);
+}
+
+.est-image {
+  max-height: 100%;
+  max-width: 42%;
+  object-fit: contain;
+  border-radius: calc(var(--u) * 1);
+  border: 1px solid rgba(var(--gold-rgb), 0.35);
+}
+
+.est-question {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: calc(var(--u) * 1.6);
+  min-width: 0;
+}
+
+.est-question .question {
+  font-size: calc(var(--u) * 4.8);
+  line-height: 1.05;
+  max-width: calc(var(--u) * 85);
+}
+
+.est-question .question.long {
+  font-size: calc(var(--u) * 3.8);
+}
+
+.est-solution {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: calc(var(--u) * 0.8) calc(var(--u) * 3) calc(var(--u) * 0.6);
+  border-radius: calc(var(--u) * 1);
+  border: 1px solid rgba(var(--gold-rgb), 0.5);
+  background: rgba(17, 26, 53, 0.75);
+  box-shadow: 0 0 calc(var(--u) * 4) rgba(var(--gold-rgb), 0.18);
+}
+
+.est-solution .answer-text {
+  font-size: calc(var(--u) * 7);
+}
+
+.est-cards {
+  display: flex;
+  gap: calc(var(--u) * 1.4);
+  perspective: calc(var(--u) * 100);
+}
+
+.est-card {
+  flex: 1;
+  min-width: 0;
+  min-height: calc(var(--u) * 13);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--u) * 0.2);
+  padding: calc(var(--u) * 1) calc(var(--u) * 1.4);
+  border-radius: calc(var(--u) * 1);
+  border: 1px solid var(--line);
+  border-top: calc(var(--u) * 0.5) solid var(--team);
+  background: var(--glass);
+  transition:
+    opacity var(--t-slow) var(--ease-out),
+    box-shadow var(--t-slow) var(--ease-out),
+    border-color var(--t-slow) var(--ease-out);
+}
+
+.est-card.won {
+  border-color: var(--team);
+  box-shadow: 0 0 calc(var(--u) * 3.5) color-mix(in srgb, var(--team) 55%, transparent);
+  background: color-mix(in srgb, var(--team) 22%, var(--navy));
+}
+
+.est-card.lost {
+  opacity: 0.6;
+}
+
+.est-team {
+  font-size: calc(var(--u) * 2);
+  color: var(--team);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.est-guess {
+  font-size: calc(var(--u) * 6);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.est-wait {
+  font-size: calc(var(--u) * 5);
+  line-height: 1;
+  color: var(--muted);
+}
+
+.est-wait.in {
+  color: #6be3b0;
+}
+
+.est-diff {
+  font-size: calc(var(--u) * 1.8);
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.est-diff b {
+  font-weight: 400;
+  color: var(--gold-light);
+}
+
+/* ---------- Regiepult ---------- */
+
+.host .guess {
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 24px;
+}
+
+/* ---------- Team-Handy ---------- */
+
+.est-entry {
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  text-align: center;
+}
+
+.est-entry label {
+  font-size: 22px;
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.est-entry input {
+  width: 100%;
+  padding: 18px 12px 12px;
+  border-radius: 16px;
+  border: 2px solid var(--team);
+  background: var(--navy);
+  color: var(--white);
+  font-family: var(--display);
+  font-size: 56px;
+  text-align: center;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.est-entry button {
+  padding: 18px;
+  border: none;
+  border-radius: 16px;
+  background: var(--team);
+  color: var(--navy-deep);
+  font-family: var(--display);
+  font-size: 30px;
+  letter-spacing: 0.06em;
+}
+
+.est-entry button:disabled {
+  opacity: 0.4;
+}
+
+.est-entry p {
+  margin: 0;
+  font-family: var(--text);
+  letter-spacing: 0;
+  font-size: 18px;
+  color: #6be3b0;
+}
+
+.est-entry p.error {
+  color: #ff8a80;
+}

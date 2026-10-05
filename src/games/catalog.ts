@@ -1,7 +1,7 @@
 import type { Game } from '../store/types'
 
 /** Spielart: bestimmt, welche Steuerung, Beamer-Szene und Daten ein Spiel hat (siehe registry.tsx). */
-export type GameKind = 'plain' | 'quiz' | 'score' | 'countdown' | 'stopwatch' | 'prompt' | 'measure'
+export type GameKind = 'plain' | 'quiz' | 'score' | 'countdown' | 'stopwatch' | 'prompt' | 'measure' | 'estimate'
 
 export interface GameVariant {
   key: string
@@ -37,6 +37,12 @@ export interface QuizConfig {
   imageFirst?: boolean
   /** mehrere Hinweise (Bild oder Text) pro Eintrag, die nacheinander aufgedeckt werden */
   hints?: boolean
+  /** jeder Eintrag hat einen Song, der in Stufen angespielt wird */
+  audio?: boolean
+  /** Länge der Stufen in Sekunden, von kurz nach lang */
+  stages?: number[]
+  /** die Antwort ist eine Zahl (Schätzfragen) */
+  numeric?: boolean
   /** nur die Lösung, keine eigene Frage: geraten wird über die Hinweise */
   answerOnly?: boolean
   /** Einträge ohne Antwort, z. B. Aussagen bei „Wer würde eher“ */
@@ -84,7 +90,15 @@ export const GAMES: GameDef[] = [
   },
   { id: 'ex-oder-zieh', name: 'Ex oder zieh', category: 'Party', kind: 'stopwatch' },
   { id: 'wer-wuerde-eher', name: 'Wer würde eher', category: 'Soziales', kind: 'prompt', quiz: { itemLabel: 'Frage', noAnswer: true } },
-  { id: 'songs-erraten', name: 'Songs erraten', category: 'Musik', kind: 'quiz', quiz: { itemLabel: 'Song' }, timerMinutes: 25 },
+  {
+    id: 'songs-erraten',
+    name: 'Songs erraten',
+    category: 'Musik',
+    kind: 'quiz',
+    // Stufen wie bei Songless; die Längen lassen sich hier ändern
+    quiz: { itemLabel: 'Song', answerOnly: true, audio: true, stages: [0.1, 0.5, 2, 8, 15] },
+    timerMinutes: 25,
+  },
   {
     id: 'build-it',
     name: 'Build it',
@@ -117,7 +131,14 @@ export const GAMES: GameDef[] = [
     unit: 'g',
     quiz: { itemLabel: 'Objekt', noAnswer: true, plainList: true },
   },
-  { id: 'schaetzfragen', name: 'Schätzfragen', category: 'Wissen', kind: 'plain' },
+  {
+    id: 'schaetzfragen',
+    name: 'Schätzfragen',
+    category: 'Wissen',
+    kind: 'estimate',
+    quiz: { itemLabel: 'Frage', numeric: true },
+    timerMinutes: 25,
+  },
   {
     id: 'closest-to-the-edge',
     name: 'Closest to the Edge',

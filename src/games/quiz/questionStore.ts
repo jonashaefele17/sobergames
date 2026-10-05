@@ -17,6 +17,10 @@ export interface Question {
   imagePath: string | null
   /** weitere Hinweise, die nacheinander aufgedeckt werden */
   hints: Hint[]
+  /** Pfad eines Songs im Medienordner */
+  audioPath?: string | null
+  /** Startstelle im Song in Sekunden */
+  audioStart?: number
 }
 
 /**
@@ -51,6 +55,8 @@ interface Row {
   info: string
   image_path: string | null
   hints?: Hint[] | null
+  audio_path?: string | null
+  audio_start?: number | null
 }
 
 const supabaseStore: QuestionStore = {
@@ -64,11 +70,14 @@ const supabaseStore: QuestionStore = {
       info: r.info,
       imagePath: r.image_path,
       hints: r.hints ?? [],
+      audioPath: r.audio_path ?? null,
+      audioStart: r.audio_start ?? 0,
     }))
   },
 
   async save(gameId, questions) {
     const withHints = questions.some((q) => q.hints.length > 0)
+    const withAudio = questions.some((q) => q.audioPath)
     const rows = questions.map((q, position) => ({
       id: q.id,
       game_id: gameId,
@@ -78,8 +87,9 @@ const supabaseStore: QuestionStore = {
       info: q.info,
       image_path: q.imagePath,
       updated_at: new Date().toISOString(),
-      // die Spalte gibt es erst nach dem Schema-Update; ohne Hinweise bleibt das Speichern davon unabhängig
+      // diese Spalten gibt es erst nach dem Schema-Update; ohne Hinweise bzw. Songs bleibt das Speichern davon unabhängig
       ...(withHints ? { hints: q.hints } : {}),
+      ...(withAudio ? { audio_path: q.audioPath ?? null, audio_start: q.audioStart ?? 0 } : {}),
     }))
     if (rows.length) {
       const { error } = await supabase!.from(TABLE).upsert(rows)

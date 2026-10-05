@@ -202,6 +202,10 @@ create table if not exists public.sobergames_questions (
 -- weitere Hinweise je Frage (Bild oder Text), die nacheinander aufgedeckt werden
 alter table public.sobergames_questions add column if not exists hints jsonb not null default '[]';
 
+-- Song zum Eintrag (Pfad im Medienordner) und die Startstelle in Sekunden
+alter table public.sobergames_questions add column if not exists audio_path text;
+alter table public.sobergames_questions add column if not exists audio_start real not null default 0;
+
 create index if not exists sobergames_questions_game on public.sobergames_questions (game_id, position);
 
 alter table public.sobergames_questions enable row level security;
@@ -217,6 +221,58 @@ create policy "host manages questions"
 
 -- Bilder und Songs liegen nicht in Supabase, sondern im Repo unter public/media
 -- und werden mit der Seite ausgeliefert. Hier steht je Eintrag nur der Pfad.
+
+-- ============================================================
+-- Schätzfragen: Schätzung je Team. Die Handys schreiben nur über ihren Code
+-- und nur solange die Eingabe offen ist; lesen kann sie allein der Host.
+-- ============================================================
+
+create table if not exists public.sobergames_answers (
+  team_id text primary key,
+  value double precision not null,
+  updated_at timestamptz not null default now()
+);
+
+alter table public.sobergames_answers enable row level security;
+revoke all on public.sobergames_answers from anon;
+grant select, insert, update, delete on public.sobergames_answers to authenticated;
+
+drop policy if exists "host manages answers" on public.sobergames_answers;
+create policy "host manages answers"
+  on public.sobergames_answers for all
+  to authenticated
+  using (true)
+  with check (true);
+
+-- Abgabe einer Schätzung. „Offen“ ist die Eingabe, solange sobergames_buzzer.armed
+-- gesetzt ist (im Schätzspiel hat das Feld diese Bedeutung). Ändern ist bis zum
+-- Schließen erlaubt.
+create or replace function public.sobergames_answer(p_token text, p_value double precision)
+returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_team text;
+begin
+  select t.team_id into v_team from public.sobergames_tokens t where t.token = p_token;
+  if v_team is null or p_value is null then
+    return false;
+  end if;
+  if not exists (select 1 from public.sobergames_buzzer where id = 1 and armed) then
+    return false;
+  end if;
+
+  insert into public.sobergames_answers (team_id, value, updated_at)
+  values (v_team, p_value, now())
+  on conflict (team_id) do update set value = excluded.value, updated_at = excluded.updated_at;
+  return true;
+end;
+$$;
+
+revoke execute on function public.sobergames_answer(text, double precision) from public;
+grant execute on function public.sobergames_answer(text, double precision) to anon, authenticated;
 
 -- ============================================================
 -- Gemeinsame Uhr: Jedes Gerät gleicht sich damit ab, damit Countdown und
@@ -250,5 +306,11 @@ begin
     where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'sobergames_buzzer'
   ) then
     alter publication supabase_realtime add table public.sobergames_buzzer;
+  end if;
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'sobergames_answers'
+  ) then
+    alter publication supabase_realtime add table public.sobergames_answers;
   end if;
 end $$;

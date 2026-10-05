@@ -294,6 +294,13 @@ export const showQuestion = (view: Omit<QuizView, 'answer' | 'info' | 'phase'>) 
   play: { ...s.play, quiz: { ...view, answer: null, info: null, phase: 'question' } },
 })
 
+/** Löst im Beamer-Fenster einen Song-Schnipsel (Stufe), den ganzen Song oder Stopp aus. */
+export const cueAudio = (play: 'stage' | 'full' | 'stop', stage?: number) => (s: State): State => {
+  const audio = s.play.quiz?.audio
+  if (!s.play.quiz || !audio) return s
+  return { ...s, play: { ...s.play, quiz: { ...s.play.quiz, audio: { ...audio, play, stage: stage ?? audio.stage, nonce: audio.nonce + 1 } } } }
+}
+
 /** Deckt einen weiteren Hinweis zur laufenden Frage auf. */
 export const addHint = (hint: ShownHint) => (s: State): State =>
   s.play.quiz ? { ...s, play: { ...s.play, quiz: { ...s.play.quiz, hints: [...(s.play.quiz.hints ?? []), hint] } } } : s

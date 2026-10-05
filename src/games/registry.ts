@@ -1,6 +1,8 @@
 import type { ComponentType } from 'react'
 import type { Game, State } from '../store/types'
 import type { GameKind } from './catalog'
+import EstimateHost from './estimate/EstimateHost'
+import EstimateScene from './estimate/EstimateScene'
 import CountdownHost from './countdown/CountdownHost'
 import CountdownScene from './countdown/CountdownScene'
 import MeasureHost from './measure/MeasureHost'
@@ -35,5 +37,6 @@ export const KINDS: Record<GameKind, KindModule> = {
   countdown: { label: 'Countdown', Scene: CountdownScene, Host: CountdownHost },
   stopwatch: { label: 'Stoppuhr', Scene: StopwatchScene, Host: StopwatchHost },
   prompt: { label: 'Fragenrunde', Scene: PromptScene, Host: PromptHost, Editor: QuizEditor, dataLabel: 'Fragen' },
+  estimate: { label: 'Schätzen', Scene: EstimateScene, Host: EstimateHost, Editor: QuizEditor, dataLabel: 'Fragen' },
   measure: { label: 'Messen', Scene: MeasureScene, Host: MeasureHost, Editor: QuizEditor, dataLabel: 'Objekte' },
 }

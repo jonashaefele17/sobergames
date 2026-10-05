@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import './buzzer.css'
+import { gameKind } from '../games/catalog'
+import EstimatePhone from '../games/estimate/EstimatePhone'
 import { SPRING, teamStyle } from '../lib/motion'
 import { useGame } from '../store'
 import { buzzerStore, useBuzzer } from '.'
@@ -75,6 +77,12 @@ export default function TeamPhone({ token }: { token: string }) {
   }
   if (!team) {
     return <div className="phone phone-message">Dieses Team gibt es nicht mehr – frag den Host nach einem neuen QR-Code</div>
+  }
+
+  // bei Schätzfragen zeigt das Handy die Zahleneingabe statt des Buzzers
+  const playing = state.scene === 'play' ? state.games.find((g) => g.id === state.play.gameId) : undefined
+  if (playing && gameKind(playing) === 'estimate') {
+    return <EstimatePhone token={token} team={team} state={state} open={buzzer.armed} />
   }
 
   const other = state.teams.find((t) => t.id === buzzer.buzzedTeamId)
