@@ -53,6 +53,10 @@ export interface QuizView {
   imageUrl: string | null
   /** bisher aufgedeckte Hinweise; bei Bildern steht in value die anzeigbare URL */
   hints?: ShownHint[]
+  /** welcher aufgedeckte Hinweis groß gezeigt wird; ohne Angabe der letzte */
+  hintFocus?: number
+  /** Einheit der gesuchten Zahl bei Schätzfragen, von Anfang an sichtbar */
+  unit?: string
   /** Song zum Eintrag und der letzte Abspiel-Auslöser */
   audio?: AudioCue
   answer: string | null
@@ -126,6 +130,8 @@ export interface MeasureData {
 
 export interface Play {
   gameId: string | null
+  /** Buzzer-Probe: die Szene, zu der der Beamer danach zurückkehrt */
+  returnScene?: Scene
   quiz: QuizView | null
   timer: Timer
   data: PlayData

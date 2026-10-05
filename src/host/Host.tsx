@@ -9,7 +9,7 @@ import { gamePoints, maxSwing, standings } from '../lib/scoring'
 import { SPRING, teamStyle } from '../lib/motion'
 import { buzzerStore } from '../buzzer'
 import { BuzzerPanel } from '../buzzer/BuzzerPanel'
-import { gameDef, gameKind, gameName } from '../games/catalog'
+import { gameDef, gameKind, gameName, playingGame } from '../games/catalog'
 import { KINDS } from '../games/registry'
 import { gameStore, useGame } from '../store'
 import type { Game, Scene, State } from '../store/types'
@@ -398,10 +398,7 @@ function SetupPanel({ state, onEdit }: { state: State; onEdit: (gameId: string) 
               <b className="num">{pad(i + 1)}</b>
               <span className="grow game-title">
                 {gameName(game)}
-                <small>
-                  {def.category}
-                  {def.kind !== 'plain' && ` · ${kind.label}`}
-                </small>
+                {def.kind !== 'plain' && <small>{kind.label}</small>}
               </span>
               {locked ? (
                 <span className="lock" title="Bereits gewertet">
@@ -554,16 +551,18 @@ export default function Host() {
   const { ready, state, unsaved: snapshotUnsaved } = useGame()
   const [tab, setTab] = useState<Tab>('setup')
   const [editing, setEditing] = useState<string | null>(null)
+  /** wohin der Tab „Spiel“ ausweicht, wenn nichts mehr läuft */
+  const [afterPlay, setAfterPlay] = useState<Tab>('games')
 
   if (session === 'loading' || !ready) return <div className="host">Lade…</div>
   if (session === null) return <Login />
 
-  const playing = state.games.find((g) => g.id === state.play.gameId)
+  const playing = playingGame(state)
   const PlayHost = playing ? KINDS[gameKind(playing)].Host : undefined
   const Editor = editing ? KINDS[gameDef(editing).kind].Editor : undefined
   const tabs = TABS.filter(([key]) => key !== 'play' || playing)
-  // ohne laufendes Spiel gibt es den Tab „Spiel“ nicht: nach dem Beenden geht „Spiele“ auf
-  const shown: Tab = tab === 'play' && !playing ? 'games' : tab
+  // ohne laufendes Spiel gibt es den Tab „Spiel“ nicht: nach dem Beenden geht „Spiele“ auf, nach der Probe „Buzzer“
+  const shown: Tab = tab === 'play' && !playing ? afterPlay : tab
 
   const start = (gameId: string) => {
     if (state.play.gameId !== gameId) {
@@ -574,6 +573,15 @@ export default function Host() {
     } else {
       run(act.setScene('play'))
     }
+    setAfterPlay('games')
+    setTab('play')
+  }
+
+  const startDemo = () => {
+    run(act.startDemo)
+    buzzerStore.arm(false)
+    buzzerStore.resetRound()
+    setAfterPlay('buzzer')
     setTab('play')
   }
 
@@ -608,7 +616,7 @@ export default function Host() {
       {shown === 'draw' && <DrawPanel state={state} />}
       {shown === 'games' && <GamesPanel state={state} onStart={start} />}
       {shown === 'play' && playing && PlayHost && <PlayHost state={state} game={playing} />}
-      {shown === 'buzzer' && <BuzzerPanel state={state} />}
+      {shown === 'buzzer' && <BuzzerPanel state={state} onDemo={startDemo} />}
       {shown === 'setup' && <SetupPanel state={state} onEdit={setEditing} />}
       {editing && Editor && <Editor gameId={editing} onClose={() => setEditing(null)} />}
       {shown === 'reset' && <ResetPanel state={state} />}

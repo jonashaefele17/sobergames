@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import './buzzer.css'
-import { gameKind } from '../games/catalog'
+import { gameKind, playingGame } from '../games/catalog'
 import EstimatePhone from '../games/estimate/EstimatePhone'
 import { SPRING, teamStyle } from '../lib/motion'
 import { useGame } from '../store'
@@ -80,7 +80,7 @@ export default function TeamPhone({ token }: { token: string }) {
   }
 
   // bei Schätzfragen zeigt das Handy die Zahleneingabe statt des Buzzers
-  const playing = state.scene === 'play' ? state.games.find((g) => g.id === state.play.gameId) : undefined
+  const playing = state.scene === 'play' ? playingGame(state) : undefined
   if (playing && gameKind(playing) === 'estimate') {
     return <EstimatePhone token={token} team={team} state={state} open={buzzer.armed} />
   }

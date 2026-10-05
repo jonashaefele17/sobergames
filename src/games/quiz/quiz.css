@@ -264,6 +264,11 @@
   overflow: hidden;
   display: grid;
   place-items: center;
+  opacity: 0.6;
+  transition:
+    opacity var(--t-mid) var(--ease-out),
+    border-color var(--t-mid) var(--ease-out),
+    box-shadow var(--t-mid) var(--ease-out);
 }
 
 .hint-thumb img {
@@ -291,13 +296,9 @@
 }
 
 .hint-thumb.current {
-  border-color: rgba(var(--gold-rgb), 0.7);
-  background: rgba(var(--gold-rgb), 0.12);
-}
-
-.hint-thumb.current .n {
-  position: static;
-  font-size: calc(var(--u) * 3);
+  opacity: 1;
+  border-color: rgba(var(--gold-rgb), 0.85);
+  box-shadow: 0 0 calc(var(--u) * 1.6) rgba(var(--gold-rgb), 0.3);
 }
 
 /* ---------- Regiepult ---------- */

@@ -6,22 +6,29 @@ import * as act from '../../lib/actions'
 import { teamStyle } from '../../lib/motion'
 import { gameStore } from '../../store'
 import type { Game, ShownHint, State } from '../../store/types'
-import { gameDef, gameName } from '../catalog'
+import { DEMO_ID, gameDef, gameName } from '../catalog'
 import { HostTimer } from '../common/HostTimer'
 import { mediaUrl } from '../common/media'
-import { questionStore, type Hint, type Question } from './questionStore'
+import { newQuestion, questionStore, type Hint, type Question } from './questionStore'
 
 const run = (fn: (s: State) => State) => gameStore.update(fn)
+
+/** die eine Frage der Buzzer-Probe; sie steht im Code, nicht in der Datenbank */
+const DEMO_QUESTIONS: Question[] = [
+  newQuestion({ id: 'probe-1', question: 'Unter welchem Namen ist diese Spieleolympiade noch bekannt?', answer: 'The Sober Games' }),
+]
 
 /** Regiepult-Steuerung eines Buzzer-Quiz: Fragen zeigen, werten, auflösen, beenden. */
 export default function QuizHost({ state, game }: { state: State; game: Game }) {
   const def = gameDef(game.id)
   const label = def.quiz?.itemLabel ?? 'Frage'
+  const demo = game.id === DEMO_ID
   const { state: buzzer } = useBuzzer()
-  const [questions, setQuestions] = useState<Question[] | null>(null)
+  const [loaded, setQuestions] = useState<Question[] | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    if (demo) return
     let cancelled = false
     questionStore
       .list(game.id)
@@ -34,8 +41,9 @@ export default function QuizHost({ state, game }: { state: State; game: Game }) 
     return () => {
       cancelled = true
     }
-  }, [game.id])
+  }, [game.id, demo])
 
+  const questions = demo ? DEMO_QUESTIONS : loaded
   const quiz = state.play.quiz
   const index = quiz?.index ?? -1
   const current = questions?.[index]
@@ -62,7 +70,8 @@ export default function QuizHost({ state, game }: { state: State; game: Game }) 
       act.showQuestion({
         index: i,
         total: questions!.length,
-        text: q.question,
+        // bei Spielen ohne Fragefeld (nur Lösung) bleibt ein alter Fragetext unsichtbar
+        text: def.quiz?.answerOnly ? '' : q.question,
         imageUrl: mediaUrl(q.imagePath),
         hints: first ? [first] : [],
         // der Song wird gezeigt, aber noch nicht gespielt: die Stufen löst der Host aus
@@ -75,6 +84,7 @@ export default function QuizHost({ state, game }: { state: State; game: Game }) 
   const stages = def.quiz?.audio ? (def.quiz.stages ?? [1, 2, 4, 8, 16]) : null
   const seconds = (s: number) => `${s.toLocaleString('de-DE')} s`
   const shownHints = quiz?.hints?.length ?? 0
+  const focusedHint = quiz?.hintFocus ?? shownHints - 1
   const nextHint = current?.hints[shownHints]
 
   const showNextHint = () => {
@@ -83,9 +93,13 @@ export default function QuizHost({ state, game }: { state: State; game: Game }) 
     if (resolved) run(act.addHint(resolved))
   }
 
+  /** zeigt die Antwort; ein Song läuft dabei von vorn und spielt durch */
   const reveal = () => {
-    if (current) run(act.revealAnswer(current.answer, current.info || null))
+    if (current) run((s) => act.cueAudio('full')(act.revealAnswer(current.answer, current.info || null)(s)))
   }
+
+  /** Antwort wieder verdecken, die Musik dazu stoppt */
+  const reopen = () => run((s) => act.cueAudio('stop')(act.reopenQuestion(s)))
 
   const correct = () => {
     buzzerStore.judge(true, { pause: true })
@@ -94,13 +108,13 @@ export default function QuizHost({ state, game }: { state: State; game: Game }) 
 
   /** Vertippt? Wertung zurücknehmen; nach „Richtig“ wird auch die Antwort wieder ausgeblendet. */
   const undo = () => {
-    if (buzzer.lastJudgement?.correct) run(act.reopenQuestion)
+    if (buzzer.lastJudgement?.correct) reopen()
     buzzerStore.undoJudge()
   }
 
   /** Alle Sperren dieser Frage aufheben und den Buzzer für alle scharf schalten. */
   const releaseAll = () => {
-    if (answered) run(act.reopenQuestion)
+    if (answered) reopen()
     buzzerStore.startQuestion()
   }
 
@@ -118,6 +132,12 @@ export default function QuizHost({ state, game }: { state: State; game: Game }) 
     buzzerStore.resetRound()
   }
 
+  const endDemo = () => {
+    run(act.endDemo)
+    buzzerStore.arm(false)
+    buzzerStore.resetRound()
+  }
+
   const leave = () => {
     if (!confirm('Spielseite ohne Wertung verlassen? Die Rundenpunkte bleiben im Buzzer-Tab erhalten.')) return
     run(act.leavePlay)
@@ -127,7 +147,7 @@ export default function QuizHost({ state, game }: { state: State; game: Game }) 
   return (
     <section className="quiz-host">
       <h2>{gameName(game)}</h2>
-      <HostTimer state={state} />
+      {demo ? <p className="hint">Probe zum Vorführen – zählt nicht und ändert nichts am Spielstand.</p> : <HostTimer state={state} />}
       {error && <p className="warn">{error}</p>}
       {questions && questions.length === 0 && (
         <p className="warn">Noch keine Einträge – im Setup bei „{def.name}“ auf „Fragen“ tippen.</p>
@@ -143,7 +163,7 @@ export default function QuizHost({ state, game }: { state: State; game: Game }) 
           </div>
           {current ? (
             <>
-              {current.question && <div className="q-text">{current.question}</div>}
+              {current.question && !def.quiz?.answerOnly && <div className="q-text">{current.question}</div>}
               <div className={`q-answer${current.question ? '' : ' main'}`}>
                 <small>{current.question ? 'Antwort' : 'Lösung'}</small> {current.answer || '—'}
               </div>
@@ -174,6 +194,16 @@ export default function QuizHost({ state, game }: { state: State; game: Game }) 
                   <button className="primary" disabled={!nextHint} onClick={showNextHint}>
                     {nextHint ? `Hinweis ${shownHints + 1} zeigen` : 'Alle gezeigt'}
                   </button>
+                </div>
+              )}
+              {shownHints > 1 && (
+                <div className="row tight hint-switch">
+                  <span className="hint grow">Groß zeigen</span>
+                  {Array.from({ length: shownHints }, (_, i) => (
+                    <button key={i} className={i === focusedHint ? 'on' : ''} onClick={() => run(act.focusHint(i))}>
+                      {i + 1}
+                    </button>
+                  ))}
                 </div>
               )}
             </>
@@ -247,9 +277,15 @@ export default function QuizHost({ state, game }: { state: State; game: Game }) 
                   Auflösen
                 </button>
               )}
-              <button className="primary big" disabled={!upcoming} onClick={() => show(index + 1)}>
-                {upcoming ? `Weiter: ${label} ${index + 2}` : 'Keine weiteren'}
-              </button>
+              {demo ? (
+                <button className="primary big" onClick={() => show(0)}>
+                  Nochmal von vorn
+                </button>
+              ) : (
+                <button className="primary big" disabled={!upcoming} onClick={() => show(index + 1)}>
+                  {upcoming ? `Weiter: ${label} ${index + 2}` : 'Keine weiteren'}
+                </button>
+              )}
             </>
           )}
         </div>
@@ -281,12 +317,22 @@ export default function QuizHost({ state, game }: { state: State; game: Game }) 
         </div>
       ))}
 
-      <div className="row">
-        <button className="primary big" onClick={end}>
-          Spiel beenden & werten
-        </button>
-      </div>
-      <button onClick={leave}>Spielseite ohne Wertung verlassen</button>
+      {demo ? (
+        <div className="row">
+          <button className="primary big" onClick={endDemo}>
+            Probe beenden
+          </button>
+        </div>
+      ) : (
+        <>
+          <div className="row">
+            <button className="primary big" onClick={end}>
+              Spiel beenden & werten
+            </button>
+          </div>
+          <button onClick={leave}>Spielseite ohne Wertung verlassen</button>
+        </>
+      )}
     </section>
   )
 }

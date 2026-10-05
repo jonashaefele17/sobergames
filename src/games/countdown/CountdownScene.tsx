@@ -18,7 +18,7 @@ export default function CountdownScene({ state, game }: { state: State; game: Ga
 
   return (
     <div className="scene">
-      <SceneHead title={gameName(game)} sub={def.category} />
+      <SceneHead title={gameName(game)} />
       <div className="scene-body">
         <div className="countdown">
           <motion.div

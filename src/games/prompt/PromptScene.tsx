@@ -16,7 +16,7 @@ export default function PromptScene({ state, game }: { state: State; game: Game 
 
   return (
     <div className="scene">
-      <SceneHead title={gameName(game)} sub={quiz ? `${label} ${quiz.index + 1}` : def.category} />
+      <SceneHead title={gameName(game)} sub={quiz ? `${label} ${quiz.index + 1}` : undefined} />
       <div className="scene-body">
         <AnimatePresence mode="wait">
           {!quiz ? (

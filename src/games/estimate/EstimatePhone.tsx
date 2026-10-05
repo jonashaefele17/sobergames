@@ -9,7 +9,7 @@ import NumberInput from './NumberInput'
 import { estimateData, estimateTotals, formatNumber, parseNumber } from './logic'
 
 /** Eingabe einer Frage; wird je Frage neu angelegt, damit Feld und Abgabe leer beginnen. */
-function Entry({ token, open }: { token: string; open: boolean }) {
+function Entry({ token, open, unit }: { token: string; open: boolean; unit: string }) {
   const [text, setText] = useState('')
   const [sent, setSent] = useState<number | null>(null)
   const [busy, setBusy] = useState(false)
@@ -32,7 +32,7 @@ function Entry({ token, open }: { token: string; open: boolean }) {
     return (
       <div className="phone-state">
         <b>Eingabe geschlossen</b>
-        <span>{sent !== null ? `Eure Schätzung: ${formatNumber(sent)}` : 'Gleich wird aufgelöst'}</span>
+        <span>{sent !== null ? `Eure Schätzung: ${formatNumber(sent)}${unit}` : 'Gleich wird aufgelöst'}</span>
       </div>
     )
   }
@@ -46,10 +46,11 @@ function Entry({ token, open }: { token: string; open: boolean }) {
     >
       <label htmlFor="estimate-input">Eure Schätzung</label>
       <NumberInput id="estimate-input" placeholder="Zahl eingeben" value={text} onChange={setText} />
+      {unit && <span className="unit">Gesucht in:{unit}</span>}
       <button type="submit" disabled={value === null || busy}>
         {sent === null ? 'Abschicken' : 'Ändern'}
       </button>
-      {sent !== null && <motion.p initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={SPRING} key={sent}>Abgegeben: {formatNumber(sent)}</motion.p>}
+      {sent !== null && <motion.p initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={SPRING} key={sent}>Abgegeben: {formatNumber(sent)}{unit}</motion.p>}
       {failed && <p className="error">Nicht angekommen – nochmal versuchen</p>}
     </form>
   )
@@ -61,6 +62,8 @@ export default function EstimatePhone({ token, team, state, open }: { token: str
   const data = estimateData(state)
   const totals = estimateTotals(state)
   const guess = data.guesses[team.id]
+  // mit führendem Leerzeichen, damit sie direkt hinter eine Zahl passt
+  const unit = quiz?.unit ? ` ${quiz.unit}` : ''
   const ranking = [...state.teams].sort((a, b) => totals[b.id] - totals[a.id])
 
   return (
@@ -83,7 +86,10 @@ export default function EstimatePhone({ token, team, state, open }: { token: str
           </div>
         ) : data.solution !== null ? (
           <div className="phone-state">
-            <b>{formatNumber(data.solution)}</b>
+            <b>
+              {formatNumber(data.solution)}
+              {unit}
+            </b>
             <span>
               {guess === undefined
                 ? 'Lösung'
@@ -93,7 +99,7 @@ export default function EstimatePhone({ token, team, state, open }: { token: str
             </span>
           </div>
         ) : (
-          <Entry key={quiz.index} token={token} open={open} />
+          <Entry key={quiz.index} token={token} open={open} unit={unit} />
         )}
       </main>
       <footer className="phone-foot">{quiz ? `Frage ${quiz.index + 1}` : ''}</footer>

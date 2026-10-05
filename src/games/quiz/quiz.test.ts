@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { applyJudge, applyStartQuestion, initialBuzzer } from '../../buzzer/types'
 import * as act from '../../lib/actions'
 import type { State } from '../../store/types'
-import { GAMES, gameName } from '../catalog'
+import { DEMO_ID, GAMES, gameKind, gameName, playingGame } from '../catalog'
 import { describeBackup, parseBackup, type Backup } from '../../lib/backup'
 import { mediaFiles, mediaKind, mediaUrl } from '../common/media'
 import { parseQuestions } from './parse'
@@ -124,6 +124,22 @@ describe('Hinweise', () => {
     s = act.showQuestion({ index: 1, total: 2, text: 'Und hier?', imageUrl: null, hints: [] })(s)
     expect(s.play.quiz?.hints).toEqual([])
   })
+
+  it('ein früherer Hinweis lässt sich wieder groß zeigen, ein neuer rückt nach vorn', () => {
+    let s = act.showQuestion({ index: 0, total: 1, text: '', imageUrl: null, hints: [{ kind: 'text', value: 'eins' }] })(act.initialState())
+    expect(s.play.quiz?.hintFocus).toBeUndefined() // ohne Angabe gilt der letzte
+    s = act.addHint({ kind: 'text', value: 'zwei' })(s)
+    s = act.addHint({ kind: 'text', value: 'drei' })(s)
+    expect(s.play.quiz?.hintFocus).toBe(2)
+    s = act.focusHint(0)(s)
+    expect(s.play.quiz?.hintFocus).toBe(0)
+    expect(act.focusHint(3)(s)).toBe(s) // noch nicht aufgedeckt
+    expect(act.focusHint(-1)(s)).toBe(s)
+    s = act.addHint({ kind: 'text', value: 'vier' })(s)
+    expect(s.play.quiz?.hintFocus).toBe(3)
+    s = act.showQuestion({ index: 1, total: 2, text: '', imageUrl: null, hints: [] })(s)
+    expect(s.play.quiz?.hintFocus).toBeUndefined()
+  })
 })
 
 describe('Nur Lösung (Guess the Location)', () => {
@@ -194,11 +210,46 @@ describe('Songs in Stufen', () => {
     expect(s.play.quiz!.audio).toMatchObject({ stage: 1, nonce: 5, play: 'full' })
   })
 
+  it('beim Auflösen spielt der Song durch, beim Zurücknehmen stoppt er', () => {
+    const answered = act.cueAudio('full')(act.revealAnswer('Titel', null)(act.cueAudio('stage', 1)(shown)))
+    expect(answered.play.quiz).toMatchObject({ phase: 'answer', audio: { play: 'full', nonce: 2, stage: 1 } })
+    const reopened = act.cueAudio('stop')(act.reopenQuestion(answered))
+    expect(reopened.play.quiz).toMatchObject({ phase: 'question', audio: { play: 'stop', nonce: 3 } })
+  })
+
   it('der Song bleibt beim Auflösen erhalten, ohne Song passiert nichts', () => {
     const answered = act.revealAnswer('Titel', null)(act.cueAudio('stage', 2)(shown))
     expect(answered.play.quiz!.audio).toMatchObject({ stage: 2, nonce: 1 })
     const plain = act.showQuestion({ index: 0, total: 1, text: 'F?', imageUrl: null })(act.initialState())
     expect(act.cueAudio('stage', 0)(plain)).toBe(plain)
+  })
+})
+
+describe('Buzzer-Probe', () => {
+  it('läuft auf der Spielseite, ohne die Spiele zu berühren, und kehrt zur vorherigen Szene zurück', () => {
+    const before = act.togglePlace('allgemeinwissen', 0, 'team-2')({ ...act.initialState(), scene: 'teams' })
+    let s = act.startDemo(before)
+    expect(s.scene).toBe('play')
+    expect(s.play.gameId).toBe(DEMO_ID)
+    expect(s.games).toBe(before.games)
+    expect(gameKind(playingGame(s)!)).toBe('quiz')
+    expect(gameName(playingGame(s)!)).toBe('Buzzer-Probe')
+
+    s = act.revealAnswer('The Sober Games', null)(act.showQuestion({ index: 0, total: 1, text: 'F?', imageUrl: null })(s))
+    s = act.endDemo(s)
+    expect(s).toEqual(before)
+  })
+
+  it('wird nie gewertet und unterbricht kein laufendes Spiel', () => {
+    const before = { ...act.initialState(), scene: 'games' as const }
+    const ended = act.endPlay({ 'team-1': 3 })(act.startDemo(before))
+    expect(ended).toEqual(before)
+    expect(ended.games.every((g) => g.result === null)).toBe(true)
+
+    const running = act.startPlay('allgemeinwissen')(before)
+    expect(act.startDemo(running)).toBe(running)
+    expect(act.endDemo(running)).toBe(running)
+    expect(act.normalize(JSON.parse(JSON.stringify(act.startDemo(before)))).games).toHaveLength(GAMES.length)
   })
 })
 

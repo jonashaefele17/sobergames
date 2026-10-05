@@ -14,12 +14,12 @@ export default function QuizScene({ state, game }: { state: State; game: Game })
   const quiz = state.play.quiz
   const imageFirst = Boolean(def.quiz?.imageFirst)
   const hints = quiz?.hints ?? []
-  const currentHint = hints[hints.length - 1]
-  const earlier = hints.slice(0, -1)
+  const focus = Math.min(quiz?.hintFocus ?? hints.length - 1, hints.length - 1)
+  const currentHint = hints[focus]
 
   return (
     <div className="scene">
-      <SceneHead title={gameName(game)} sub={quiz ? `${label} ${quiz.index + 1}` : def.category} />
+      <SceneHead title={gameName(game)} sub={quiz ? `${label} ${quiz.index + 1}` : undefined} />
       <div className="scene-body">
         <AnimatePresence mode="wait">
           {!quiz ? (
@@ -37,7 +37,7 @@ export default function QuizScene({ state, game }: { state: State; game: Game })
                 <div className="quiz-hints">
                   <AnimatePresence mode="wait">
                     <motion.div
-                      key={hints.length}
+                      key={focus}
                       className="hint-main"
                       initial={{ opacity: 0, scale: 0.92 }}
                       animate={{ opacity: 1, scale: 1 }}
@@ -47,17 +47,20 @@ export default function QuizScene({ state, game }: { state: State; game: Game })
                       {currentHint.kind === 'image' ? <img src={currentHint.value} alt="" /> : <div className="hint-text">{currentHint.value}</div>}
                     </motion.div>
                   </AnimatePresence>
-                  {earlier.length > 0 && (
+                  {hints.length > 1 && (
                     <div className="hint-strip">
-                      {earlier.map((h, i) => (
-                        <motion.div key={i} className="hint-thumb" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={SPRING}>
+                      {hints.map((h, i) => (
+                        <motion.div
+                          key={i}
+                          className={`hint-thumb${i === focus ? ' current' : ''}`}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={SPRING}
+                        >
                           <span className="n">{i + 1}</span>
                           {h.kind === 'image' ? <img src={h.value} alt="" /> : <span className="t">{h.value}</span>}
                         </motion.div>
                       ))}
-                      <div className="hint-thumb current">
-                        <span className="n">{hints.length}</span>
-                      </div>
                     </div>
                   )}
                 </div>

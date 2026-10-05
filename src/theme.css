@@ -481,13 +481,6 @@ textarea {
   overflow-wrap: anywhere;
 }
 
-.game-face .cat {
-  margin-top: calc(var(--u) * 0.5);
-  font-size: calc(var(--u) * 1.2);
-  letter-spacing: 0.25em;
-  color: var(--muted);
-}
-
 .pts {
   position: absolute;
   top: calc(var(--u) * 0.7);
@@ -556,11 +549,6 @@ textarea {
 
 .spotlight .name {
   font-size: calc(var(--u) * 9.5);
-}
-
-.spotlight .cat {
-  font-size: calc(var(--u) * 2.2);
-  margin-top: calc(var(--u) * 1.4);
 }
 
 .spotlight .pts {

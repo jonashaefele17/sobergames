@@ -1,4 +1,4 @@
-import { GAMES, gameDef, isKnownGame } from '../games/catalog'
+import { DEMO_ID, GAMES, gameDef, isKnownGame } from '../games/catalog'
 import type { Game, GameResult, Play, Player, QuizView, Scene, ShownHint, State, Team } from '../store/types'
 
 export const TEAM_COLORS = ['#ef5350', '#42a5f5', '#34c98a', '#ab7dff', '#ff9140', '#f062a6']
@@ -301,9 +301,19 @@ export const cueAudio = (play: 'stage' | 'full' | 'stop', stage?: number) => (s:
   return { ...s, play: { ...s.play, quiz: { ...s.play.quiz, audio: { ...audio, play, stage: stage ?? audio.stage, nonce: audio.nonce + 1 } } } }
 }
 
-/** Deckt einen weiteren Hinweis zur laufenden Frage auf. */
-export const addHint = (hint: ShownHint) => (s: State): State =>
-  s.play.quiz ? { ...s, play: { ...s.play, quiz: { ...s.play.quiz, hints: [...(s.play.quiz.hints ?? []), hint] } } } : s
+/** Deckt einen weiteren Hinweis zur laufenden Frage auf; er wird groß gezeigt. */
+export const addHint = (hint: ShownHint) => (s: State): State => {
+  if (!s.play.quiz) return s
+  const hints = [...(s.play.quiz.hints ?? []), hint]
+  return { ...s, play: { ...s.play, quiz: { ...s.play.quiz, hints, hintFocus: hints.length - 1 } } }
+}
+
+/** Zeigt einen schon aufgedeckten Hinweis wieder groß. */
+export const focusHint = (index: number) => (s: State): State => {
+  const quiz = s.play.quiz
+  if (!quiz || !Number.isInteger(index) || index < 0 || index >= (quiz.hints?.length ?? 0)) return s
+  return { ...s, play: { ...s.play, quiz: { ...quiz, hintFocus: index } } }
+}
 
 export const revealAnswer = (answer: string, info: string | null) => (s: State): State =>
   s.play.quiz ? { ...s, play: { ...s.play, quiz: { ...s.play.quiz, answer, info, phase: 'answer' } } } : s
@@ -315,9 +325,21 @@ export const reopenQuestion = (s: State): State =>
 /** Beendet das Spiel: Rundenpunkte werden zur Platzierung, danach die Tabelle. */
 export const endPlay = (scores: Record<string, number>) => (s: State): State => {
   const gameId = s.play.gameId
+  // die Buzzer-Probe wird nie gewertet
+  if (gameId === DEMO_ID) return endDemo(s)
   const withResult = gameId ? setResultFromScores(gameId, scores)(s) : s
   return { ...withResult, scene: 'scoreboard', play: freshPlay(s.play.timer.durationMs) }
 }
+
+/** Startet die Buzzer-Probe; ein laufendes Spiel wird dafür nicht unterbrochen. */
+export const startDemo = (s: State): State =>
+  s.play.gameId
+    ? s
+    : { ...s, scene: 'play', play: { ...freshPlay(s.play.timer.durationMs), gameId: DEMO_ID, returnScene: s.scene === 'play' ? 'games' : s.scene } }
+
+/** Beendet die Buzzer-Probe: zurück zur Szene davor, ohne Ergebnis. */
+export const endDemo = (s: State): State =>
+  s.play.gameId === DEMO_ID ? { ...s, scene: s.play.returnScene ?? 'games', play: freshPlay(s.play.timer.durationMs) } : s
 
 /**
  * Beendet das Spiel mit Messwerten je Team (Zeit, Höhe, Differenz …). Teams

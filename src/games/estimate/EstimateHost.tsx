@@ -80,14 +80,14 @@ export default function EstimateHost({ state, game }: { state: State; game: Game
     if (!q) return
     setManual({})
     void answerStore.clear().catch(() => setError('Alte Schätzungen konnten nicht gelöscht werden'))
-    run((s) => resetQuestion(act.showQuestion({ index: i, total: questions!.length, text: q.question, imageUrl: mediaUrl(q.imagePath) })(s)))
+    run((s) => resetQuestion(act.showQuestion({ index: i, total: questions!.length, text: q.question, imageUrl: mediaUrl(q.imagePath), unit: q.info.trim() || undefined })(s)))
     buzzerStore.arm(true)
   }
 
   const solve = () => {
     if (solution === null || !current) return
     buzzerStore.arm(false)
-    run((s) => act.revealAnswer(formatNumber(solution), current.info || null)(revealSolution(index, solution, teamAnswers)(s)))
+    run((s) => act.revealAnswer(formatNumber(solution), null)(revealSolution(index, solution, teamAnswers)(s)))
   }
 
   const end = () => {
@@ -131,7 +131,7 @@ export default function EstimateHost({ state, game }: { state: State; game: Game
 
       {current && (
         <div className="card team-states">
-          <div className="hint">Schätzungen – die Zahlen siehst du erst nach dem Aufdecken</div>
+          <div className="hint">Schätzungen – auf Beamer und Handys erst nach dem Aufdecken sichtbar</div>
           {state.teams.map((t) => {
             const has = answers[t.id] !== undefined
             const shown = data.guesses[t.id] !== undefined
@@ -139,11 +139,18 @@ export default function EstimateHost({ state, game }: { state: State; game: Game
               <div key={t.id} className="row tight" style={teamStyle(t.color)}>
                 <span className="dot" />
                 <span className="grow">{t.name}</span>
-                {shown ? (
-                  <b className="guess">{formatNumber(data.guesses[t.id])}</b>
-                ) : (
-                  <span className={`team-state ${has ? 'frei' : ''}`}>{has ? 'abgegeben' : 'offen'}</span>
+                {has && (
+                  <b className="guess">
+                    {formatNumber(answers[t.id])}
+                    {solution !== null && answers[t.id] !== solution && (
+                      <small>
+                        {answers[t.id] > solution ? '+' : '−'}
+                        {formatNumber(Math.abs(answers[t.id] - solution))}
+                      </small>
+                    )}
+                  </b>
                 )}
+                <span className={`team-state ${shown ? 'frei' : ''}`}>{shown ? 'aufgedeckt' : has ? 'verdeckt' : 'offen'}</span>
                 {!open && !solved && has && !shown && (
                   <button className="state-btn" onClick={() => run(revealGuess(t.id, answers[t.id]))}>
                     Aufdecken

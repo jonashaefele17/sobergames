@@ -1,4 +1,4 @@
-import type { Game } from '../store/types'
+import type { Game, State } from '../store/types'
 
 /** Spielart: bestimmt, welche Steuerung, Beamer-Szene und Daten ein Spiel hat (siehe registry.tsx). */
 export type GameKind = 'plain' | 'quiz' | 'score' | 'countdown' | 'stopwatch' | 'prompt' | 'measure' | 'estimate'
@@ -55,7 +55,6 @@ export interface GameDef {
   /** fester Schlüssel; daran hängen Ergebnis und eigene Daten, egal an welchem Platz das Spiel steht */
   id: string
   name: string
-  category: string
   kind: GameKind
   variants?: GameVariant[]
   quiz?: QuizConfig
@@ -71,14 +70,12 @@ export const GAMES: GameDef[] = [
   {
     id: 'last-cup-standing',
     name: 'Last Cup Standing',
-    category: 'Geschicklichkeit',
     kind: 'score',
     score: { mode: 'winner', target: 5 },
   },
   {
     id: 'arschbolzen',
     name: 'Arschbolzen',
-    category: 'Geschicklichkeit',
     kind: 'score',
     // je Schuss wählt das Team die Distanz: nah 1, mittel 2, weit 3 Punkte; daneben 0
     score: { mode: 'shots', shots: 6, steps: [0, 1, 2, 3] },
@@ -88,12 +85,11 @@ export const GAMES: GameDef[] = [
       { key: 'kippmoment', name: 'Kippmoment', note: 'bei schlechtem Wetter', kind: 'plain' },
     ],
   },
-  { id: 'ex-oder-zieh', name: 'Ex oder zieh', category: 'Party', kind: 'stopwatch' },
-  { id: 'wer-wuerde-eher', name: 'Wer würde eher', category: 'Soziales', kind: 'prompt', quiz: { itemLabel: 'Frage', noAnswer: true } },
+  { id: 'ex-oder-zieh', name: 'Ex oder zieh', kind: 'stopwatch' },
+  { id: 'wer-wuerde-eher', name: 'Wer würde eher', kind: 'prompt', quiz: { itemLabel: 'Frage', noAnswer: true } },
   {
     id: 'songs-erraten',
     name: 'Songs erraten',
-    category: 'Musik',
     kind: 'quiz',
     // Stufen wie bei Songless; die Längen lassen sich hier ändern
     quiz: { itemLabel: 'Song', answerOnly: true, audio: true, stages: [0.1, 0.5, 2, 8, 15] },
@@ -102,7 +98,6 @@ export const GAMES: GameDef[] = [
   {
     id: 'build-it',
     name: 'Build it',
-    category: 'Geschicklichkeit',
     kind: 'countdown',
     timerMinutes: 5,
     unit: 'cm',
@@ -110,7 +105,6 @@ export const GAMES: GameDef[] = [
   {
     id: 'guess-the-location',
     name: 'Guess the Location',
-    category: 'Wissen',
     kind: 'quiz',
     quiz: { itemLabel: 'Ort', imageFirst: true, hints: true, answerOnly: true },
     timerMinutes: 25,
@@ -118,15 +112,13 @@ export const GAMES: GameDef[] = [
   {
     id: 'scribble-rush',
     name: 'Scribble Rush',
-    category: 'Kreativität',
     kind: 'score',
     score: { mode: 'round', max: 12 },
   },
-  { id: 'allgemeinwissen', name: 'Allgemeinwissen', category: 'Wissen', kind: 'quiz', quiz: { itemLabel: 'Frage' }, timerMinutes: 25 },
+  { id: 'allgemeinwissen', name: 'Allgemeinwissen', kind: 'quiz', quiz: { itemLabel: 'Frage' }, timerMinutes: 25 },
   {
     id: 'perfect-cut',
     name: 'Perfect Cut',
-    category: 'Geschicklichkeit',
     kind: 'measure',
     unit: 'g',
     quiz: { itemLabel: 'Objekt', noAnswer: true, plainList: true },
@@ -134,7 +126,6 @@ export const GAMES: GameDef[] = [
   {
     id: 'schaetzfragen',
     name: 'Schätzfragen',
-    category: 'Wissen',
     kind: 'estimate',
     quiz: { itemLabel: 'Frage', numeric: true },
     timerMinutes: 25,
@@ -142,14 +133,12 @@ export const GAMES: GameDef[] = [
   {
     id: 'closest-to-the-edge',
     name: 'Closest to the Edge',
-    category: 'Geschicklichkeit',
     kind: 'score',
     score: { mode: 'winner' },
   },
   {
     id: 'mein-team-kann',
     name: 'Mein Team kann',
-    category: 'Allgemeines',
     kind: 'score',
     score: { mode: 'free' },
   },
@@ -157,8 +146,21 @@ export const GAMES: GameDef[] = [
 
 const BY_ID = new Map(GAMES.map((d) => [d.id, d]))
 
+/**
+ * Buzzer-Probe: sieht aus wie ein Buzzer-Quiz, gehört aber nicht zu den Spielen
+ * des Abends – sie steht nicht in der Liste und bekommt nie ein Ergebnis.
+ */
+export const DEMO_ID = 'buzzer-probe'
+const DEMO: GameDef = { id: DEMO_ID, name: 'Buzzer-Probe', kind: 'quiz', quiz: { itemLabel: 'Frage' } }
+
 export function gameDef(id: string): GameDef {
-  return BY_ID.get(id) ?? { id, name: id, category: '', kind: 'plain' }
+  return id === DEMO_ID ? DEMO : (BY_ID.get(id) ?? { id, name: id, kind: 'plain' })
+}
+
+/** Das Spiel, dessen Spielseite gerade offen ist; für die Buzzer-Probe ein Platzhalter. */
+export function playingGame(state: Pick<State, 'games' | 'play'>): Game | undefined {
+  if (state.play.gameId === DEMO_ID) return { id: DEMO_ID, revealed: true, result: null }
+  return state.games.find((g) => g.id === state.play.gameId)
 }
 
 export const isKnownGame = (id: string) => BY_ID.has(id)

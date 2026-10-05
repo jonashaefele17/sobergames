@@ -278,7 +278,7 @@ export default function QuizEditor({ gameId, onClose }: { gameId: string; onClos
           {!noAnswer && (
             <div className="row tight">
               <span className="num" />
-              <input className="grow" value={q.info} placeholder={numeric ? 'Einheit oder Zusatzinfo, z. B. Meter' : 'Zusatzinfo (optional)'} onChange={(e) => update(q.id, { info: e.target.value })} />
+              <input className="grow" value={q.info} placeholder={numeric ? 'Einheit, z. B. Meter (für alle sichtbar)' : 'Zusatzinfo (optional)'} onChange={(e) => update(q.id, { info: e.target.value })} />
             </div>
           )}
           {withHints && (

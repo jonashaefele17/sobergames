@@ -3,7 +3,7 @@ import './stopwatch.css'
 import { SceneHead } from '../../components/shared'
 import { EASE_OUT, SPRING, teamStyle } from '../../lib/motion'
 import type { Game, State } from '../../store/types'
-import { gameDef, gameName } from '../catalog'
+import { gameName } from '../catalog'
 import { TitleCard } from '../common/TitleCard'
 import { formatStopwatch, useNow } from '../common/time'
 import { stopwatchData } from './logic'
@@ -21,7 +21,7 @@ export default function StopwatchScene({ state, game }: { state: State; game: Ga
 
   return (
     <div className="scene">
-      <SceneHead title={gameName(game)} sub={gameDef(game.id).category} />
+      <SceneHead title={gameName(game)} />
       <div className="scene-body">
         <AnimatePresence mode="wait">
           {!started ? (

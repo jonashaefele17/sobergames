@@ -7,7 +7,7 @@ import { GamesScene, ScoreboardScene, TeamsScene, WinnerScene } from './scenes/S
 import WheelScene from './scenes/Wheel'
 import { useBuzzer } from './buzzer'
 import { BuzzerOverlay } from './buzzer/BuzzerOverlay'
-import { gameKind } from './games/catalog'
+import { gameKind, playingGame } from './games/catalog'
 import { KINDS } from './games/registry'
 import { useGame } from './store'
 import type { State } from './store/types'
@@ -34,7 +34,7 @@ function SceneView({ state, buzzerOn }: { state: State; buzzerOn: boolean }) {
     case 'winner':
       return <WinnerScene state={state} />
     case 'play': {
-      const game = state.games.find((g) => g.id === state.play.gameId)
+      const game = playingGame(state)
       const Scene = game ? KINDS[gameKind(game)].Scene : undefined
       return game && Scene ? <Scene state={state} game={game} /> : <GamesScene state={state} hideTicker={buzzerOn} />
     }
@@ -46,7 +46,7 @@ export default function Show() {
   const { ready, state } = useGame()
   const buzzer = useBuzzer().state
   // Der Buzzer erscheint nur auf der Spielseite eines Buzzer-Spiels, dort aber dauerhaft
-  const playing = state.scene === 'play' ? state.games.find((g) => g.id === state.play.gameId) : undefined
+  const playing = state.scene === 'play' ? playingGame(state) : undefined
   const buzzerOn = playing !== undefined && gameKind(playing) === 'quiz'
 
   useEffect(() => {

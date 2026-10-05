@@ -19,7 +19,7 @@ export default function MeasureScene({ state, game }: { state: State; game: Game
 
   return (
     <div className="scene">
-      <SceneHead title={gameName(game)} sub={data.items.length ? `Differenz in ${unit || 'Einheiten'}` : def.category} />
+      <SceneHead title={gameName(game)} sub={data.items.length ? `Differenz in ${unit || 'Einheiten'}` : undefined} />
       <div className="scene-body">
         <AnimatePresence mode="wait">
           {data.items.length === 0 ? (

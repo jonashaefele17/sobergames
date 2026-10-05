@@ -35,7 +35,7 @@ export default function ScoreScene({ state, game }: { state: State; game: Game }
             ? `${data.shotCount} Versuche`
             : data.rounds.length
               ? `${unit} ${data.rounds.length}${data.target ? ` · Ziel ${data.target}` : ''}`
-              : gameDef(game.id).category
+              : undefined
         }
       />
       <div className="scene-body">

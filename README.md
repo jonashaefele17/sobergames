@@ -51,14 +51,18 @@ Allgemeinwissen, Guess the Location und Songs erraten sind **Buzzer-Quiz**-Spiel
 2. **Spielen:** Spiele-Tab → **„Spiel starten“** → Tab **Spiel**. Dort laufen Timer (nur zur Orientierung, nach 0 geht es einfach weiter), aktuelle Frage mit Antwort, Richtig/Falsch, Auflösen und Nächste Frage.
 3. **Spiel beenden & werten:** Die Rundenpunkte werden zur Platzierung (3/2/1) in der Tabelle.
 
-Bei **Guess the Location** trägst du pro Eintrag nur den **Ort (Lösung)** und darunter die **Hinweise** ein (Bild oder Text). Der erste Hinweis erscheint sofort, die weiteren deckst du im Tab „Spiel“ einzeln auf; der neueste steht groß, die früheren klein daneben.
+Bei **Guess the Location** trägst du pro Eintrag nur den **Ort (Lösung)** und darunter die **Hinweise** ein (Bild oder Text). Der erste Hinweis erscheint sofort, die weiteren deckst du im Tab „Spiel“ einzeln auf; der neueste steht groß, alle aufgedeckten klein daneben. Über „Groß zeigen“ (1, 2, 3 …) holst du einen früheren Hinweis wieder nach vorn.
 
 Bei **Songs erraten** trägst du pro Eintrag den **Song (Lösung)** ein, wählst die Datei aus dem Medienordner und gibst optional „Start bei Sekunde“ an. Stille am Dateianfang wird von selbst übersprungen; die Sekunden zählen ab dem ersten hörbaren Ton. Im Tab „Spiel“ läuft nach „Song 1 zeigen“ noch nichts: Du spielst die Stufen selbst an (**0,1 s / 0,5 s / 2 s / 8 s / 15 s**, änderbar in `src/games/catalog.ts`), mit „Nochmal“, „Stopp“ und „Song ausspielen“. Auf dem Beamer füllen sich die Stufen-Felder der Reihe nach, das neue Stück beginnt also sichtbar erst im letzten Feld. Beim Buzz stoppt die Musik von selbst. Der Ton kommt aus dem **Beamer-Fenster**; dort muss wie beim Countdown einmal geklickt oder eine Taste gedrückt worden sein.
 
+### Buzzer-Probe
+
+Im Tab „Buzzer“ startet **„Probe starten“** eine Probefrage, die auf dem Beamer wie eine Allgemeinwissen-Frage aussieht. Damit lässt sich vor der ersten Runde zeigen, wie der Buzzer funktioniert. Die Probe steht nicht in der Spieleliste, wird nie gewertet und ändert nichts am Spielstand; „Probe beenden“ bringt den Beamer zur vorherigen Ansicht zurück.
+
 ### Schätzfragen
 
-1. **Fragen pflegen:** Setup → „Fragen bearbeiten“, eine Zeile pro Frage: `Frage | Lösung als Zahl | Zusatzinfo` (z. B. Einheit oder Quelle).
-2. **Frage zeigen:** Die Teams tippen ihre Schätzung auf ihrem Handy ein (dieselbe Seite wie der Buzzer) (mit Tausenderpunkten beim Tippen) und können sie ändern, bis du **„Eingabe schließen“** drückst. Im Regiepult siehst du nur, wer abgegeben hat.
+1. **Fragen pflegen:** Setup → „Fragen bearbeiten“, eine Zeile pro Frage: `Frage | Lösung als Zahl | Einheit` (z. B. Meter). Die Einheit sehen alle von Anfang an, auf dem Beamer und am Handy; Lösungshinweise gehören dort nicht hinein.
+2. **Frage zeigen:** Die Teams tippen ihre Schätzung auf ihrem Handy ein (dieselbe Seite wie der Buzzer) (mit Tausenderpunkten beim Tippen) und können sie ändern, bis du **„Eingabe schließen“** drückst. Im Regiepult siehst du jede abgegebene Zahl sofort (mit Abweichung zur Lösung) und kannst so die Reihenfolge fürs Aufdecken wählen.
 3. **Aufdecken:** Je Team einzeln in beliebiger Reihenfolge oder „Alle aufdecken“, danach **„Lösung aufdecken“**.
 4. **Wertung:** Standard ist 1 Punkt für das nächste Team, bei gleichem Abstand für beide. Umschaltbar auf „Abgestuft 2 / 1“. Punkte lassen sich mit ± korrigieren; fällt ein Handy aus, trägst du die Schätzung von Hand ein.
 

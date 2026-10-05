@@ -137,6 +137,17 @@
   font-size: 24px;
 }
 
+.host .guess small {
+  margin-left: 6px;
+  font-family: var(--text);
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.host .team-states .team-state {
+  width: 84px;
+}
+
 /* ---------- Team-Handy ---------- */
 
 .est-entry {
@@ -170,6 +181,13 @@
   -webkit-user-select: text;
 }
 
+.est-entry .unit {
+  margin-top: -6px;
+  font-size: 22px;
+  letter-spacing: 0.06em;
+  color: var(--team);
+}
+
 .est-entry button {
   padding: 18px;
   border: none;
@@ -195,4 +213,11 @@
 
 .est-entry p.error {
   color: #ff8a80;
+}
+
+.est-unit {
+  margin-top: calc(var(--u) * 1.2);
+  font-size: calc(var(--u) * 2.6);
+  letter-spacing: 0.12em;
+  color: var(--gold);
 }

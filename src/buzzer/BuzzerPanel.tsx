@@ -6,7 +6,7 @@ import { buzzerStore, useBuzzer } from '.'
 import { QrOverlay } from './QrOverlay'
 
 /** Regiepult-Tab: Team-Handys verteilen (QR-Codes) und prüfen, ob sie verbunden sind. */
-export function BuzzerPanel({ state }: { state: State }) {
+export function BuzzerPanel({ state, onDemo }: { state: State; onDemo: () => void }) {
   const { connected } = useBuzzer()
   const [tokens, setTokens] = useState<Record<string, string>>({})
   const [tokenError, setTokenError] = useState<string | null>(null)
@@ -68,7 +68,13 @@ export function BuzzerPanel({ state }: { state: State }) {
         </div>
       </details>
 
-      <p className="hint">Gesteuert wird der Buzzer auf der Spielseite: Spiele → „Spiel starten“ → Tab „Spiel“.</p>
+      <h2>Buzzer-Probe</h2>
+      <p className="hint">Eine Probefrage zum Vorführen, wie der Buzzer funktioniert. Sie zählt nicht und ändert nichts am Spielstand.</p>
+      <button className="primary big" disabled={state.play.gameId !== null} onClick={onDemo}>
+        {state.play.gameId === null ? 'Probe starten' : 'Erst das laufende Spiel beenden'}
+      </button>
+
+      <p className="hint">Im Spiel wird der Buzzer auf der Spielseite gesteuert: Spiele → „Spiel starten“ → Tab „Spiel“.</p>
 
       <AnimatePresence>
         {qrTeam && tokens[qrTeam.id] && <QrOverlay team={qrTeam} token={tokens[qrTeam.id]} onClose={() => setQrTeamId(null)} />}

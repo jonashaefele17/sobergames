@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { gameDef, gameName } from '../games/catalog'
+import { gameName } from '../games/catalog'
 import { race, type Race } from '../lib/race'
 import { gamePoints, standings } from '../lib/scoring'
 import { EASE_OUT, SPRING, teamStyle } from '../lib/motion'
@@ -77,7 +77,6 @@ function GameCard({ game, index, state, flipped }: { game: Game; index: number; 
         <span className="num">{finale ? `${pad(index + 1)} · Finale ×${state.scoring.finaleFactor}` : pad(index + 1)}</span>
         {points}
         <span className="name">{gameName(game)}</span>
-        {gameDef(game.id).category && <span className="cat">{gameDef(game.id).category}</span>}
         {winner && <span className="game-winner">{teamNames(firsts, state.teams)}</span>}
       </div>
     </motion.div>
