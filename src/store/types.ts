@@ -26,6 +26,11 @@ export interface Game {
   variant?: string
 }
 
+export interface ShownHint {
+  kind: 'image' | 'text'
+  value: string
+}
+
 /** Was der Beamer von der aktuellen Quiz-Frage zeigt; Antwort erst nach der Auflösung. */
 export interface QuizView {
   /** 0-basiert */
@@ -33,6 +38,8 @@ export interface QuizView {
   total: number
   text: string
   imageUrl: string | null
+  /** bisher aufgedeckte Hinweise; bei Bildern steht in value die anzeigbare URL */
+  hints?: ShownHint[]
   answer: string | null
   info: string | null
   phase: 'question' | 'answer'

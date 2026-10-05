@@ -50,6 +50,8 @@ Allgemeinwissen, Guess the Location und Songs erraten sind **Buzzer-Quiz**-Spiel
 2. **Spielen:** Spiele-Tab → **„Spiel starten“** → Tab **Spiel**. Dort laufen Timer (nur zur Orientierung, nach 0 geht es einfach weiter), aktuelle Frage mit Antwort, Richtig/Falsch, Auflösen und Nächste Frage.
 3. **Spiel beenden & werten:** Die Rundenpunkte werden zur Platzierung (3/2/1) in der Tabelle.
 
+Bei **Guess the Location** hat jeder Ort statt eines einzelnen Bildes eine Liste von **Hinweisen** (Bild oder Text). Der erste erscheint mit der Frage, die weiteren deckst du im Tab „Spiel“ einzeln auf; der neueste steht groß, die früheren klein daneben.
+
 ## Starten
 
 ```

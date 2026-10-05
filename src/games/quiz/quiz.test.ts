@@ -107,3 +107,18 @@ describe('Buzzer im Quiz', () => {
     expect(applyStartQuestion(s)).toMatchObject({ armed: true, status: 'open', buzzedTeamId: null, excludedTeamIds: [] })
   })
 })
+
+describe('Hinweise', () => {
+  it('werden nacheinander aufgedeckt und beginnen bei jeder Frage neu', () => {
+    let s = act.startPlay('guess-the-location')(act.initialState())
+    expect(act.addHint({ kind: 'text', value: 'x' })(s)).toBe(s) // ohne Frage passiert nichts
+    s = act.showQuestion({ index: 0, total: 2, text: 'Wo?', imageUrl: null, hints: [{ kind: 'image', value: 'url1' }] })(s)
+    s = act.addHint({ kind: 'text', value: 'Tipp' })(s)
+    expect(s.play.quiz?.hints).toEqual([
+      { kind: 'image', value: 'url1' },
+      { kind: 'text', value: 'Tipp' },
+    ])
+    s = act.showQuestion({ index: 1, total: 2, text: 'Und hier?', imageUrl: null, hints: [] })(s)
+    expect(s.play.quiz?.hints).toEqual([])
+  })
+})

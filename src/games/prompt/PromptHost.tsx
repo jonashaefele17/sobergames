@@ -90,7 +90,7 @@ export default function PromptHost({ state, game }: { state: State; game: Game }
 
       {questions && questions.length > 0 && (
         <button className="primary big" disabled={index >= 0 && !upcoming} onClick={() => void show(index + 1)}>
-          {index < 0 ? `Erste ${label} zeigen` : upcoming ? `Nächste ${label}` : 'Keine weiteren'}
+          {index < 0 ? `${label} 1 zeigen` : upcoming ? `Weiter: ${label} ${index + 2}` : 'Keine weiteren'}
         </button>
       )}
       {index > 0 && (

@@ -1,5 +1,12 @@
 import { isSupabaseConfigured, supabase } from '../../lib/supabaseClient'
 
+/** Ein Hinweis zu einer Frage; bei Bildern ist value der Pfad im Bucket (bzw. lokal die Data-URL) */
+export interface Hint {
+  id: string
+  kind: 'image' | 'text'
+  value: string
+}
+
 export interface Question {
   id: string
   question: string
@@ -8,6 +15,8 @@ export interface Question {
   info: string
   /** Pfad im privaten Bucket (Supabase) bzw. Data-URL (lokal) */
   imagePath: string | null
+  /** weitere Hinweise, die nacheinander aufgedeckt werden */
+  hints: Hint[]
 }
 
 /**
@@ -34,6 +43,7 @@ export const newQuestion = (patch: Partial<Question> = {}): Question => ({
   answer: '',
   info: '',
   imagePath: null,
+  hints: [],
   ...patch,
 })
 
@@ -59,20 +69,29 @@ interface Row {
   answer: string
   info: string
   image_path: string | null
+  hints?: Hint[] | null
 }
 
 const supabaseStore: QuestionStore = {
   async list(gameId) {
     const { data, error } = await supabase!
       .from(TABLE)
-      .select('id, game_id, position, question, answer, info, image_path')
+      .select('*')
       .eq('game_id', gameId)
       .order('position')
     if (error) throw error
-    return (data as Row[]).map((r) => ({ id: r.id, question: r.question, answer: r.answer, info: r.info, imagePath: r.image_path }))
+    return (data as Row[]).map((r) => ({
+      id: r.id,
+      question: r.question,
+      answer: r.answer,
+      info: r.info,
+      imagePath: r.image_path,
+      hints: r.hints ?? [],
+    }))
   },
 
   async save(gameId, questions) {
+    const withHints = questions.some((q) => q.hints.length > 0)
     const rows = questions.map((q, position) => ({
       id: q.id,
       game_id: gameId,
@@ -82,6 +101,8 @@ const supabaseStore: QuestionStore = {
       info: q.info,
       image_path: q.imagePath,
       updated_at: new Date().toISOString(),
+      // die Spalte gibt es erst nach dem Schema-Update; ohne Hinweise bleibt das Speichern davon unabhängig
+      ...(withHints ? { hints: q.hints } : {}),
     }))
     if (rows.length) {
       const { error } = await supabase!.from(TABLE).upsert(rows)
@@ -132,7 +153,7 @@ const toDataUrl = (blob: Blob) =>
 /** Lokal für Entwicklung und Tests: alles im localStorage, Bilder als kleine Data-URL. */
 const localStore: QuestionStore = {
   async list(gameId) {
-    return readLocal()[gameId] ?? []
+    return (readLocal()[gameId] ?? []).map((q) => ({ ...q, hints: q.hints ?? [] }))
   },
   async save(gameId, questions) {
     localStorage.setItem(LOCAL_KEY, JSON.stringify({ ...readLocal(), [gameId]: questions }))

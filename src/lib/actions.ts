@@ -1,5 +1,5 @@
 import { GAMES, gameDef, isKnownGame } from '../games/catalog'
-import type { Game, GameResult, Play, Player, QuizView, Scene, State, Team } from '../store/types'
+import type { Game, GameResult, Play, Player, QuizView, Scene, ShownHint, State, Team } from '../store/types'
 
 export const TEAM_COLORS = ['#ef5350', '#42a5f5', '#34c98a', '#ab7dff', '#ff9140', '#f062a6']
 
@@ -293,6 +293,10 @@ export const showQuestion = (view: Omit<QuizView, 'answer' | 'info' | 'phase'>) 
   ...s,
   play: { ...s.play, quiz: { ...view, answer: null, info: null, phase: 'question' } },
 })
+
+/** Deckt einen weiteren Hinweis zur laufenden Frage auf. */
+export const addHint = (hint: ShownHint) => (s: State): State =>
+  s.play.quiz ? { ...s, play: { ...s.play, quiz: { ...s.play.quiz, hints: [...(s.play.quiz.hints ?? []), hint] } } } : s
 
 export const revealAnswer = (answer: string, info: string | null) => (s: State): State =>
   s.play.quiz ? { ...s, play: { ...s.play, quiz: { ...s.play.quiz, answer, info, phase: 'answer' } } } : s

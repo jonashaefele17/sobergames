@@ -98,6 +98,100 @@
   color: rgba(255, 255, 255, 0.8);
 }
 
+/* Hinweise: der neueste groß, die früheren klein daneben */
+.quiz-hints {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: minmax(0, 1fr);
+  gap: calc(var(--u) * 1.4);
+}
+
+.hint-main {
+  position: relative;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  display: grid;
+  place-items: center;
+}
+
+/* füllt die Fläche und wird immer ganz gezeigt, egal wie viel Platz Frage und Antwort brauchen */
+.hint-main img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 calc(var(--u) * 1) calc(var(--u) * 2) rgba(0, 0, 0, 0.55));
+}
+
+.hint-text {
+  max-width: calc(var(--u) * 70);
+  padding: calc(var(--u) * 2.4) calc(var(--u) * 3.4) calc(var(--u) * 2);
+  border-radius: calc(var(--u) * 1.2);
+  border: 1px solid rgba(var(--gold-rgb), 0.45);
+  background: var(--glass);
+  font-size: calc(var(--u) * 5);
+  line-height: 1.05;
+  text-align: center;
+}
+
+.hint-strip {
+  width: calc(var(--u) * 13);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: calc(var(--u) * 0.8);
+}
+
+.hint-thumb {
+  position: relative;
+  height: calc(var(--u) * 7.4);
+  border-radius: calc(var(--u) * 0.6);
+  border: 1px solid var(--line);
+  background: var(--glass);
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+}
+
+.hint-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.hint-thumb .t {
+  padding: 0 calc(var(--u) * 0.6);
+  font-size: calc(var(--u) * 1.4);
+  line-height: 1.1;
+  text-align: center;
+  overflow: hidden;
+}
+
+.hint-thumb .n {
+  position: absolute;
+  left: calc(var(--u) * 0.4);
+  top: calc(var(--u) * 0.2);
+  font-size: calc(var(--u) * 1.4);
+  color: var(--gold);
+  text-shadow: 0 0 calc(var(--u) * 0.6) #000;
+  z-index: 1;
+}
+
+.hint-thumb.current {
+  border-color: rgba(var(--gold-rgb), 0.7);
+  background: rgba(var(--gold-rgb), 0.12);
+}
+
+.hint-thumb.current .n {
+  position: static;
+  font-size: calc(var(--u) * 3);
+}
+
 /* ---------- Regiepult ---------- */
 
 .host .quiz-current .q-text {
@@ -214,4 +308,13 @@
 
 .quiz-editor .image-row .danger {
   margin-left: auto;
+}
+
+.quiz-editor .hint-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px dashed var(--line);
 }

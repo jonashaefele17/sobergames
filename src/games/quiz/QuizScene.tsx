@@ -12,6 +12,9 @@ export default function QuizScene({ state, game }: { state: State; game: Game })
   const label = def.quiz?.itemLabel ?? 'Frage'
   const quiz = state.play.quiz
   const imageFirst = Boolean(def.quiz?.imageFirst)
+  const hints = quiz?.hints ?? []
+  const currentHint = hints[hints.length - 1]
+  const earlier = hints.slice(0, -1)
 
   return (
     <div className="scene">
@@ -23,13 +26,42 @@ export default function QuizScene({ state, game }: { state: State; game: Game })
           ) : (
             <motion.div
               key={`q-${quiz.index}`}
-              className={`quiz-stage${quiz.imageUrl ? ' with-image' : ''}${imageFirst ? ' image-first' : ''}`}
+              className={`quiz-stage${quiz.imageUrl || currentHint ? ' with-image' : ''}${imageFirst ? ' image-first' : ''}`}
               initial={{ opacity: 0, y: 40 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -30 }}
               transition={{ duration: 0.55, ease: EASE_OUT }}
             >
-              {quiz.imageUrl && (
+              {currentHint && (
+                <div className="quiz-hints">
+                  <AnimatePresence mode="wait">
+                    <motion.div
+                      key={hints.length}
+                      className="hint-main"
+                      initial={{ opacity: 0, scale: 0.92 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 1.03 }}
+                      transition={{ duration: 0.5, ease: EASE_OUT }}
+                    >
+                      {currentHint.kind === 'image' ? <img src={currentHint.value} alt="" /> : <div className="hint-text">{currentHint.value}</div>}
+                    </motion.div>
+                  </AnimatePresence>
+                  {earlier.length > 0 && (
+                    <div className="hint-strip">
+                      {earlier.map((h, i) => (
+                        <motion.div key={i} className="hint-thumb" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={SPRING}>
+                          <span className="n">{i + 1}</span>
+                          {h.kind === 'image' ? <img src={h.value} alt="" /> : <span className="t">{h.value}</span>}
+                        </motion.div>
+                      ))}
+                      <div className="hint-thumb current">
+                        <span className="n">{hints.length}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+              {quiz.imageUrl && !currentHint && (
                 <motion.div
                   className="quiz-image"
                   initial={{ opacity: 0, scale: 0.94 }}

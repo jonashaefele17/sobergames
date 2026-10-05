@@ -199,6 +199,9 @@ create table if not exists public.sobergames_questions (
   updated_at timestamptz not null default now()
 );
 
+-- weitere Hinweise je Frage (Bild oder Text), die nacheinander aufgedeckt werden
+alter table public.sobergames_questions add column if not exists hints jsonb not null default '[]';
+
 create index if not exists sobergames_questions_game on public.sobergames_questions (game_id, position);
 
 alter table public.sobergames_questions enable row level security;

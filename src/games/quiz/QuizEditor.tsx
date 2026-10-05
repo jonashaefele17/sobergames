@@ -4,7 +4,7 @@ import './quiz.css'
 import { SPRING } from '../../lib/motion'
 import { gameDef } from '../catalog'
 import { parseQuestions } from './parse'
-import { newQuestion, questionStore, type Question } from './questionStore'
+import { newQuestion, questionStore, type Hint, type Question } from './questionStore'
 import { SAMPLE_PROMPTS, SAMPLE_QUESTIONS } from './samples'
 
 const pad = (n: number) => String(n).padStart(2, '0')
@@ -33,6 +33,9 @@ export default function QuizEditor({ gameId, onClose }: { gameId: string; onClos
   const label = def.quiz?.itemLabel ?? 'Frage'
   const noAnswer = Boolean(def.quiz?.noAnswer)
   const plainList = Boolean(def.quiz?.plainList)
+  const withHints = Boolean(def.quiz?.hints)
+  // mit Hinweisen ersetzt deren Liste das einzelne Bild
+  const singleImage = !plainList && !withHints
   const [questions, setQuestions] = useState<Question[] | null>(null)
   const [paste, setPaste] = useState('')
   const [save, setSave] = useState<SaveState>('idle')
@@ -90,7 +93,33 @@ export default function QuizEditor({ gameId, onClose }: { gameId: string; onClos
   const remove = (q: Question) => {
     if (!confirm(`${label} „${q.question || 'ohne Text'}“ löschen?`)) return
     if (q.imagePath) void questionStore.removeImage(q.imagePath)
+    for (const h of q.hints) if (h.kind === 'image') void questionStore.removeImage(h.value)
     change((qs) => qs.filter((x) => x.id !== q.id))
+  }
+
+  const addHint = (q: Question, hint: Omit<Hint, 'id'>) =>
+    change((qs) => qs.map((x) => (x.id === q.id ? { ...x, hints: [...x.hints, { id: crypto.randomUUID(), ...hint }] } : x)))
+
+  const addImageHint = async (q: Question, file: File | undefined) => {
+    if (!file) return
+    try {
+      addHint(q, { kind: 'image', value: await questionStore.uploadImage(file) })
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Bild konnte nicht hochgeladen werden')
+    }
+  }
+
+  const removeHint = (q: Question, hint: Hint) => {
+    if (hint.kind === 'image') void questionStore.removeImage(hint.value)
+    update(q.id, { hints: q.hints.filter((h) => h.id !== hint.id) })
+  }
+
+  const moveHint = (q: Question, index: number, dir: -1 | 1) => {
+    const to = index + dir
+    if (to < 0 || to >= q.hints.length) return
+    const hints = [...q.hints]
+    ;[hints[index], hints[to]] = [hints[to], hints[index]]
+    update(q.id, { hints })
   }
 
   const importList = (replace: boolean) => {
@@ -200,16 +229,66 @@ export default function QuizEditor({ gameId, onClose }: { gameId: string; onClos
               </div>
             </>
           )}
+          {withHints && (
+            <div className="hint-list">
+              <div className="hint">Hinweise in der Reihenfolge, in der sie aufgedeckt werden. Der erste erscheint sofort mit der Frage.</div>
+              {q.hints.map((h, hi) => (
+                <div key={h.id} className="row tight">
+                  <b className="num">{hi + 1}</b>
+                  {h.kind === 'image' ? (
+                    <>
+                      <Thumb path={h.value} />
+                      <span className="grow hint">Bild</span>
+                    </>
+                  ) : (
+                    <input
+                      className="grow"
+                      value={h.value}
+                      placeholder="Text-Hinweis"
+                      onChange={(e) => update(q.id, { hints: q.hints.map((x) => (x.id === h.id ? { ...x, value: e.target.value } : x)) })}
+                    />
+                  )}
+                  <button className="arrow" aria-label="Hinweis nach oben" disabled={hi === 0} onClick={() => moveHint(q, hi, -1)}>
+                    ↑
+                  </button>
+                  <button className="arrow" aria-label="Hinweis löschen" onClick={() => removeHint(q, h)}>
+                    ✕
+                  </button>
+                </div>
+              ))}
+              <div className="row">
+                <label className="file-btn">
+                  + Bild-Hinweis
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      void addImageHint(q, e.target.files?.[0])
+                      e.target.value = ''
+                    }}
+                  />
+                </label>
+                <button onClick={() => addHint(q, { kind: 'text', value: '' })}>+ Text-Hinweis</button>
+              </div>
+            </div>
+          )}
           <div className="row image-row">
             <span className="num" />
-            {!plainList && q.imagePath && <Thumb path={q.imagePath} />}
-            {!plainList && (
+            {singleImage && q.imagePath && <Thumb path={q.imagePath} />}
+            {singleImage && (
             <label className="file-btn">
               {q.imagePath ? 'Bild ändern' : 'Bild hinzufügen'}
-              <input type="file" accept="image/*" onChange={(e) => void upload(q, e.target.files?.[0])} />
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  void upload(q, e.target.files?.[0])
+                  e.target.value = ''
+                }}
+              />
             </label>
             )}
-            {!plainList && q.imagePath && (
+            {singleImage && q.imagePath && (
               <button
                 onClick={() => {
                   void questionStore.removeImage(q.imagePath!)

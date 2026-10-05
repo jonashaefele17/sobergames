@@ -5,10 +5,10 @@ import { canUndo } from '../../buzzer/types'
 import * as act from '../../lib/actions'
 import { teamStyle } from '../../lib/motion'
 import { gameStore } from '../../store'
-import type { Game, State } from '../../store/types'
+import type { Game, ShownHint, State } from '../../store/types'
 import { gameDef, gameName } from '../catalog'
 import { HostTimer } from '../common/HostTimer'
-import { questionStore, type Question } from './questionStore'
+import { questionStore, type Hint, type Question } from './questionStore'
 
 const run = (fn: (s: State) => State) => gameStore.update(fn)
 
@@ -51,8 +51,30 @@ export default function QuizHost({ state, game }: { state: State; game: Game }) 
     } catch {
       setError('Bild konnte nicht geladen werden – Frage wird ohne Bild gezeigt')
     }
-    run(act.showQuestion({ index: i, total: questions!.length, text: q.question, imageUrl }))
+    // der erste Hinweis gehört zur Frage und erscheint sofort mit
+    const first = q.hints[0] ? await resolveHint(q.hints[0]) : null
+    run(act.showQuestion({ index: i, total: questions!.length, text: q.question, imageUrl, hints: first ? [first] : [] }))
     buzzerStore.startQuestion()
+  }
+
+  /** macht aus einem gespeicherten Hinweis einen anzeigbaren (Bild → Signed URL) */
+  const resolveHint = async (hint: Hint): Promise<ShownHint | null> => {
+    if (hint.kind === 'text') return { kind: 'text', value: hint.value }
+    try {
+      return { kind: 'image', value: await questionStore.imageUrl(hint.value) }
+    } catch {
+      setError('Ein Hinweis-Bild konnte nicht geladen werden')
+      return null
+    }
+  }
+
+  const shownHints = quiz?.hints?.length ?? 0
+  const nextHint = current?.hints[shownHints]
+
+  const showNextHint = async () => {
+    if (!nextHint) return
+    const resolved = await resolveHint(nextHint)
+    if (resolved) run(act.addHint(resolved))
   }
 
   const reveal = () => {
@@ -120,6 +142,16 @@ export default function QuizHost({ state, game }: { state: State; game: Game }) 
                 <small>Antwort</small> {current.answer || '—'}
               </div>
               {current.info && <div className="hint">{current.info}</div>}
+              {current.hints.length > 0 && (
+                <div className="row">
+                  <span className="hint grow">
+                    Hinweis {Math.min(shownHints, current.hints.length)} / {current.hints.length} gezeigt
+                  </span>
+                  <button className="primary" disabled={!nextHint} onClick={() => void showNextHint()}>
+                    {nextHint ? `Hinweis ${shownHints + 1} zeigen` : 'Alle gezeigt'}
+                  </button>
+                </div>
+              )}
             </>
           ) : (
             <div className="q-text idle">Noch keine {label} gezeigt</div>
@@ -182,7 +214,7 @@ export default function QuizHost({ state, game }: { state: State; game: Game }) 
         <div className="row">
           {index < 0 ? (
             <button className="primary big" onClick={() => void show(0)}>
-              Erste {label} zeigen
+              {label} 1 zeigen
             </button>
           ) : (
             <>
@@ -192,7 +224,7 @@ export default function QuizHost({ state, game }: { state: State; game: Game }) 
                 </button>
               )}
               <button className="primary big" disabled={!upcoming} onClick={() => void show(index + 1)}>
-                {upcoming ? `Nächste ${label}` : 'Keine weiteren'}
+                {upcoming ? `Weiter: ${label} ${index + 2}` : 'Keine weiteren'}
               </button>
             </>
           )}

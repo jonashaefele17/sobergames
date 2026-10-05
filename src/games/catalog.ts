@@ -35,6 +35,8 @@ export interface QuizConfig {
   itemLabel: string
   /** Bild füllt die Fläche, Text steht darunter (z. B. Orte) */
   imageFirst?: boolean
+  /** mehrere Hinweise (Bild oder Text) pro Eintrag, die nacheinander aufgedeckt werden */
+  hints?: boolean
   /** Einträge ohne Antwort, z. B. Aussagen bei „Wer würde eher“ */
   noAnswer?: boolean
   /** reine Namensliste: ohne Bilder und ohne Beispielfragen, z. B. die Objekte bei Perfect Cut */
@@ -94,7 +96,7 @@ export const GAMES: GameDef[] = [
     name: 'Guess the Location',
     category: 'Wissen',
     kind: 'quiz',
-    quiz: { itemLabel: 'Ort', imageFirst: true },
+    quiz: { itemLabel: 'Ort', imageFirst: true, hints: true },
     timerMinutes: 25,
   },
   {
