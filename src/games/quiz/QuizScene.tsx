@@ -72,7 +72,7 @@ export default function QuizScene({ state, game }: { state: State; game: Game })
                 </motion.div>
               )}
               <div className="quiz-text">
-                <div className={`question${quiz.text.length > 110 ? ' long' : ''}`}>{quiz.text}</div>
+                {quiz.text && <div className={`question${quiz.text.length > 110 ? ' long' : ''}`}>{quiz.text}</div>}
                 <AnimatePresence>
                   {quiz.phase === 'answer' && quiz.answer !== null && (
                     <motion.div

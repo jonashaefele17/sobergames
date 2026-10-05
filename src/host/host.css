@@ -496,3 +496,8 @@
   padding: 4px 8px;
   font-size: 14px;
 }
+
+.host .file-btn.disabled {
+  opacity: 0.45;
+  pointer-events: none;
+}

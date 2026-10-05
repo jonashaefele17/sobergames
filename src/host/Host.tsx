@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { motion } from 'motion/react'
 import './host.css'
 import * as act from '../lib/actions'
+import { createBackup, describeBackup, parseBackup, restoreBackup } from '../lib/backup'
 import { signInHost, signOutHost, useHostSession } from '../lib/hostAuth'
 import { race } from '../lib/race'
 import { gamePoints, maxSwing, standings } from '../lib/scoring'
@@ -448,24 +449,90 @@ function SetupPanel({ state, onEdit }: { state: State; onEdit: (gameId: string) 
 
 // ---------- Reset ----------
 
-function ResetPanel() {
+function ResetPanel({ state }: { state: State }) {
+  const [busy, setBusy] = useState(false)
+  const [message, setMessage] = useState<string | null>(null)
+
   const ask = (text: string, fn: (s: State) => State) => () => {
     if (confirm(text)) run(fn)
   }
+
+  const download = async () => {
+    setBusy(true)
+    try {
+      const backup = await createBackup(state)
+      const url = URL.createObjectURL(new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' }))
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `sobergames-sicherung-${backup.createdAt.slice(0, 16).replace(/[:T]/g, '-')}.json`
+      link.click()
+      URL.revokeObjectURL(url)
+      setMessage('Sicherung heruntergeladen.')
+    } catch (e) {
+      setMessage(e instanceof Error ? e.message : 'Sicherung fehlgeschlagen')
+    }
+    setBusy(false)
+  }
+
+  const restore = async (file: File | undefined) => {
+    if (!file) return
+    setBusy(true)
+    try {
+      const backup = parseBackup(await file.text())
+      if (confirm(`${describeBackup(backup)}\n\nEinspielen? Der aktuelle Stand und die aktuellen Fragen werden ersetzt.`)) {
+        await restoreBackup(backup, (restored) => gameStore.update(() => restored))
+        setMessage('Sicherung eingespielt.')
+      }
+    } catch (e) {
+      setMessage(e instanceof Error ? e.message : 'Einspielen fehlgeschlagen')
+    }
+    setBusy(false)
+  }
+
+  const resetAll = () => {
+    const typed = prompt('Wirklich ALLES löschen, auch Spieler, Teamnamen und Spielreihenfolge? Zum Bestätigen LÖSCHEN eintippen.')
+    if (typed?.trim().toUpperCase() === 'LÖSCHEN') run(act.resetAll)
+  }
+
   return (
     <section>
-      <p className="hint">Nach einer Probe „Punkte + Auslosung zurücksetzen“: Spieler, Teamnamen und Spieleliste bleiben erhalten.</p>
+      <h2>Sicherung</h2>
+      <p className="hint">
+        Enthält den kompletten Spielstand und alle Fragen, Orte und Objekte. Vor dem Abend einmal herunterladen, dann kann nichts verloren
+        gehen.
+      </p>
+      <div className="row">
+        <button className="primary" disabled={busy} onClick={() => void download()}>
+          Sicherung herunterladen
+        </button>
+        <label className={`file-btn${busy ? ' disabled' : ''}`}>
+          Sicherung einspielen
+          <input
+            type="file"
+            accept="application/json,.json"
+            disabled={busy}
+            onChange={(e) => {
+              void restore(e.target.files?.[0])
+              e.target.value = ''
+            }}
+          />
+        </label>
+      </div>
+      {message && <p className="hint">{message}</p>}
+
+      <h2>Zurücksetzen</h2>
+      <p className="hint">Fragen, Orte und Objekte bleiben bei jedem Zurücksetzen erhalten.</p>
       <button onClick={ask('Alle Ergebnisse löschen und Spiele wieder verdecken?', act.resetScores)}>
         Punkte zurücksetzen
-        <small>Ergebnisse und Aufdeckungen weg, Teams bleiben</small>
+        <small>löscht Ergebnisse und Aufdeckungen · Teams, Spieler und Reihenfolge bleiben</small>
       </button>
       <button onClick={ask('Ergebnisse UND Teamauslosung löschen?', act.resetScoresAndTeams)}>
         Punkte + Auslosung zurücksetzen
-        <small>Spieler, Teamnamen und Spieleliste bleiben</small>
+        <small>für den Start des Abends · Spieler, Teamnamen und Reihenfolge bleiben</small>
       </button>
-      <button className="danger" onClick={ask('Wirklich ALLES löschen, auch Spieler und Spieleliste?', act.resetAll)}>
+      <button className="danger" onClick={resetAll}>
         Alles zurücksetzen
-        <small>komplett leerer Stand</small>
+        <small>löscht auch Spieler, Teamnamen und Reihenfolge</small>
       </button>
     </section>
   )
@@ -542,7 +609,7 @@ export default function Host() {
       {tab === 'buzzer' && <BuzzerPanel state={state} />}
       {tab === 'setup' && <SetupPanel state={state} onEdit={setEditing} />}
       {editing && Editor && <Editor gameId={editing} onClose={() => setEditing(null)} />}
-      {tab === 'reset' && <ResetPanel />}
+      {tab === 'reset' && <ResetPanel state={state} />}
 
       <footer className="row">
         <a href="#/" target="_blank" rel="noreferrer">

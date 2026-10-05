@@ -1,6 +1,6 @@
 import { isSupabaseConfigured, supabase } from '../../lib/supabaseClient'
 
-/** Ein Hinweis zu einer Frage; bei Bildern ist value der Pfad im Bucket (bzw. lokal die Data-URL) */
+/** Ein Hinweis zu einem Eintrag; bei Bildern ist value der Pfad im Medienordner (siehe common/media.ts) */
 export interface Hint {
   id: string
   kind: 'image' | 'text'
@@ -13,29 +13,24 @@ export interface Question {
   answer: string
   /** optionale Zusatzinfo, die mit der Antwort erscheint */
   info: string
-  /** Pfad im privaten Bucket (Supabase) bzw. Data-URL (lokal) */
+  /** Pfad eines Bildes im Medienordner */
   imagePath: string | null
   /** weitere Hinweise, die nacheinander aufgedeckt werden */
   hints: Hint[]
 }
 
 /**
- * Inhalte der Quiz-Spiele. Nur der Host liest und schreibt sie; auf den Beamer
- * kommt immer nur die gerade gezeigte Frage über den öffentlichen Spielstand.
+ * Inhalte der Spiele (Fragen, Orte, Objekte). Nur der Host liest und schreibt
+ * sie; auf den Beamer kommt immer nur der gerade gezeigte Eintrag über den
+ * öffentlichen Spielstand. Kein Reset des Spielstands fasst sie an.
  */
 export interface QuestionStore {
   list(gameId: string): Promise<Question[]>
   /** speichert die komplette Liste in dieser Reihenfolge */
   save(gameId: string, questions: Question[]): Promise<void>
-  uploadImage(file: Blob): Promise<string>
-  /** anzeigbare URL; bei Supabase eine zeitlich begrenzte Signed URL */
-  imageUrl(path: string): Promise<string>
-  removeImage(path: string): Promise<void>
 }
 
 const TABLE = 'sobergames_questions'
-const BUCKET = 'sobergames-media'
-const SIGNED_URL_SECONDS = 6 * 60 * 60
 
 export const newQuestion = (patch: Partial<Question> = {}): Question => ({
   id: crypto.randomUUID(),
@@ -46,20 +41,6 @@ export const newQuestion = (patch: Partial<Question> = {}): Question => ({
   hints: [],
   ...patch,
 })
-
-/** Verkleinert Fotos vor dem Hochladen (max. 1600 px, JPEG), damit Beamer und Handys schnell laden. */
-export async function resizeImage(file: Blob, max = 1600): Promise<Blob> {
-  const bitmap = await createImageBitmap(file)
-  const scale = Math.min(1, max / Math.max(bitmap.width, bitmap.height))
-  const canvas = document.createElement('canvas')
-  canvas.width = Math.round(bitmap.width * scale)
-  canvas.height = Math.round(bitmap.height * scale)
-  canvas.getContext('2d')!.drawImage(bitmap, 0, 0, canvas.width, canvas.height)
-  bitmap.close()
-  return new Promise((resolve, reject) =>
-    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('Bild konnte nicht umgewandelt werden'))), 'image/jpeg', 0.85),
-  )
-}
 
 interface Row {
   id: string
@@ -74,11 +55,7 @@ interface Row {
 
 const supabaseStore: QuestionStore = {
   async list(gameId) {
-    const { data, error } = await supabase!
-      .from(TABLE)
-      .select('*')
-      .eq('game_id', gameId)
-      .order('position')
+    const { data, error } = await supabase!.from(TABLE).select('*').eq('game_id', gameId).order('position')
     if (error) throw error
     return (data as Row[]).map((r) => ({
       id: r.id,
@@ -113,23 +90,6 @@ const supabaseStore: QuestionStore = {
     const { error } = await del
     if (error) throw error
   },
-
-  async uploadImage(file) {
-    const path = `${crypto.randomUUID()}.jpg`
-    const { error } = await supabase!.storage.from(BUCKET).upload(path, await resizeImage(file), { contentType: 'image/jpeg' })
-    if (error) throw error
-    return path
-  },
-
-  async imageUrl(path) {
-    const { data, error } = await supabase!.storage.from(BUCKET).createSignedUrl(path, SIGNED_URL_SECONDS)
-    if (error) throw error
-    return data.signedUrl
-  },
-
-  async removeImage(path) {
-    await supabase!.storage.from(BUCKET).remove([path])
-  },
 }
 
 const LOCAL_KEY = 'sobergames-questions-v1'
@@ -142,15 +102,7 @@ const readLocal = (): Record<string, Question[]> => {
   }
 }
 
-const toDataUrl = (blob: Blob) =>
-  new Promise<string>((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => resolve(reader.result as string)
-    reader.onerror = () => reject(reader.error)
-    reader.readAsDataURL(blob)
-  })
-
-/** Lokal für Entwicklung und Tests: alles im localStorage, Bilder als kleine Data-URL. */
+/** Lokal für Entwicklung und Tests: alles im localStorage. */
 const localStore: QuestionStore = {
   async list(gameId) {
     return (readLocal()[gameId] ?? []).map((q) => ({ ...q, hints: q.hints ?? [] }))
@@ -158,13 +110,6 @@ const localStore: QuestionStore = {
   async save(gameId, questions) {
     localStorage.setItem(LOCAL_KEY, JSON.stringify({ ...readLocal(), [gameId]: questions }))
   },
-  async uploadImage(file) {
-    return toDataUrl(await resizeImage(file, 900))
-  },
-  async imageUrl(path) {
-    return path
-  },
-  async removeImage() {},
 }
 
 export const questionStore: QuestionStore = isSupabaseConfigured ? supabaseStore : localStore

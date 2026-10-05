@@ -6,6 +6,7 @@ import { teamStyle } from '../../lib/motion'
 import { gameStore } from '../../store'
 import type { Game, State } from '../../store/types'
 import { gameDef, gameName } from '../catalog'
+import { mediaUrl } from '../common/media'
 import { questionStore, type Question } from '../quiz/questionStore'
 import { awarded, awardTotals, toggleAward } from './logic'
 
@@ -39,16 +40,10 @@ export default function PromptHost({ state, game }: { state: State; game: Game }
   const totals = awardTotals(state)
   const winners = index >= 0 ? awarded(state, index) : []
 
-  const show = async (i: number) => {
+  const show = (i: number) => {
     const q = questions?.[i]
     if (!q) return
-    let imageUrl: string | null = null
-    try {
-      imageUrl = q.imagePath ? await questionStore.imageUrl(q.imagePath) : null
-    } catch {
-      setError('Bild konnte nicht geladen werden – Frage wird ohne Bild gezeigt')
-    }
-    run(act.showQuestion({ index: i, total: questions!.length, text: q.question, imageUrl }))
+    run(act.showQuestion({ index: i, total: questions!.length, text: q.question, imageUrl: mediaUrl(q.imagePath) }))
   }
 
   const end = () => {
@@ -89,12 +84,12 @@ export default function PromptHost({ state, game }: { state: State; game: Game }
       )}
 
       {questions && questions.length > 0 && (
-        <button className="primary big" disabled={index >= 0 && !upcoming} onClick={() => void show(index + 1)}>
+        <button className="primary big" disabled={index >= 0 && !upcoming} onClick={() => show(index + 1)}>
           {index < 0 ? `${label} 1 zeigen` : upcoming ? `Weiter: ${label} ${index + 2}` : 'Keine weiteren'}
         </button>
       )}
       {index > 0 && (
-        <button onClick={() => void show(index - 1)}>
+        <button onClick={() => show(index - 1)}>
           ← Zurück zu {label} {index}
         </button>
       )}

@@ -3,6 +3,8 @@ import { applyJudge, applyStartQuestion, initialBuzzer } from '../../buzzer/type
 import * as act from '../../lib/actions'
 import type { State } from '../../store/types'
 import { GAMES, gameName } from '../catalog'
+import { describeBackup, parseBackup, type Backup } from '../../lib/backup'
+import { mediaFiles, mediaKind, mediaUrl } from '../common/media'
 import { parseQuestions } from './parse'
 
 describe('Feste Spiele', () => {
@@ -120,5 +122,53 @@ describe('Hinweise', () => {
     ])
     s = act.showQuestion({ index: 1, total: 2, text: 'Und hier?', imageUrl: null, hints: [] })(s)
     expect(s.play.quiz?.hints).toEqual([])
+  })
+})
+
+describe('Nur Lösung (Guess the Location)', () => {
+  it('eine Zeile pro Ort, optional mit Zusatzinfo, Kopfzeile wird übersprungen', () => {
+    expect(parseQuestions('Ort\nParis | Frankreich\n\nRom\tItalien\tEwige Stadt\nTokio', true)).toEqual([
+      { question: '', answer: 'Paris', info: 'Frankreich' },
+      { question: '', answer: 'Rom', info: 'Italien | Ewige Stadt' },
+      { question: '', answer: 'Tokio', info: '' },
+    ])
+  })
+})
+
+describe('Medien aus dem Repo', () => {
+  const all = ['media/guess-the-location/a-1.jpg', 'media/guess-the-location/b.PNG', 'media/songs-erraten/s01.mp3', 'media/notiz.txt']
+
+  it('Dateien je Spiel mit Typ', () => {
+    expect(mediaFiles('guess-the-location', all)).toEqual([
+      { path: 'media/guess-the-location/a-1.jpg', name: 'a-1.jpg', kind: 'image' },
+      { path: 'media/guess-the-location/b.PNG', name: 'b.PNG', kind: 'image' },
+    ])
+    expect(mediaFiles('songs-erraten', all)[0].kind).toBe('audio')
+    expect(mediaFiles('allgemeinwissen', all)).toEqual([])
+    expect(mediaKind('media/notiz.txt')).toBe('other')
+  })
+
+  it('Adresse nur für Pfade im Medienordner', () => {
+    expect(mediaUrl('media/guess-the-location/a-1.jpg')).toBe('media/guess-the-location/a-1.jpg')
+    expect(mediaUrl('489168fb-14dc.jpg')).toBeNull() // früherer Upload
+    expect(mediaUrl(null)).toBeNull()
+  })
+})
+
+describe('Sicherung', () => {
+  it('Sichern und Einlesen ergibt wieder denselben Stand und dieselben Inhalte', () => {
+    let s = act.addPlayers(['A', 'B'])(act.initialState())
+    s = act.togglePlace('allgemeinwissen', 0, 'team-2')(act.shiftGame('allgemeinwissen', -1)(s))
+    const content = { allgemeinwissen: [{ id: 'q1', question: 'F?', answer: 'A', info: '', imagePath: null, hints: [] }] }
+    const backup: Backup = { version: 1, createdAt: '2026-10-05T10:00:00.000Z', state: s, content }
+    const read = parseBackup(JSON.stringify(backup))
+    expect(read.state).toEqual(s)
+    expect(read.content).toEqual(content)
+    expect(describeBackup(read)).toContain('2 Spieler, 1 gewertete Spiele, 1 Fragen/Einträge')
+  })
+
+  it('lehnt fremde Dateien ab', () => {
+    expect(() => parseBackup('kein json')).toThrow('gültige Sicherung')
+    expect(() => parseBackup('{"foo":1}')).toThrow('Sober-Games-Sicherung')
   })
 })

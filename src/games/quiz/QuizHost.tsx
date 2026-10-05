@@ -8,6 +8,7 @@ import { gameStore } from '../../store'
 import type { Game, ShownHint, State } from '../../store/types'
 import { gameDef, gameName } from '../catalog'
 import { HostTimer } from '../common/HostTimer'
+import { mediaUrl } from '../common/media'
 import { questionStore, type Hint, type Question } from './questionStore'
 
 const run = (fn: (s: State) => State) => gameStore.update(fn)
@@ -42,38 +43,29 @@ export default function QuizHost({ state, game }: { state: State; game: Game }) 
   const buzzed = state.teams.find((t) => t.id === buzzer.buzzedTeamId)
   const answered = quiz?.phase === 'answer'
 
-  const show = async (i: number) => {
-    const q = questions?.[i]
-    if (!q) return
-    let imageUrl: string | null = null
-    try {
-      imageUrl = q.imagePath ? await questionStore.imageUrl(q.imagePath) : null
-    } catch {
-      setError('Bild konnte nicht geladen werden – Frage wird ohne Bild gezeigt')
-    }
-    // der erste Hinweis gehört zur Frage und erscheint sofort mit
-    const first = q.hints[0] ? await resolveHint(q.hints[0]) : null
-    run(act.showQuestion({ index: i, total: questions!.length, text: q.question, imageUrl, hints: first ? [first] : [] }))
-    buzzerStore.startQuestion()
+  /** macht aus einem gespeicherten Hinweis einen anzeigbaren (Bild → Adresse im Medienordner) */
+  const resolveHint = (hint: Hint): ShownHint | null => {
+    if (hint.kind === 'text') return { kind: 'text', value: hint.value }
+    const url = mediaUrl(hint.value)
+    if (!url) setError('Ein Hinweis-Bild liegt nicht im Medienordner und wird übersprungen')
+    return url ? { kind: 'image', value: url } : null
   }
 
-  /** macht aus einem gespeicherten Hinweis einen anzeigbaren (Bild → Signed URL) */
-  const resolveHint = async (hint: Hint): Promise<ShownHint | null> => {
-    if (hint.kind === 'text') return { kind: 'text', value: hint.value }
-    try {
-      return { kind: 'image', value: await questionStore.imageUrl(hint.value) }
-    } catch {
-      setError('Ein Hinweis-Bild konnte nicht geladen werden')
-      return null
-    }
+  const show = (i: number) => {
+    const q = questions?.[i]
+    if (!q) return
+    // der erste Hinweis erscheint sofort mit
+    const first = q.hints[0] ? resolveHint(q.hints[0]) : null
+    run(act.showQuestion({ index: i, total: questions!.length, text: q.question, imageUrl: mediaUrl(q.imagePath), hints: first ? [first] : [] }))
+    buzzerStore.startQuestion()
   }
 
   const shownHints = quiz?.hints?.length ?? 0
   const nextHint = current?.hints[shownHints]
 
-  const showNextHint = async () => {
+  const showNextHint = () => {
     if (!nextHint) return
-    const resolved = await resolveHint(nextHint)
+    const resolved = resolveHint(nextHint)
     if (resolved) run(act.addHint(resolved))
   }
 
@@ -137,9 +129,9 @@ export default function QuizHost({ state, game }: { state: State; game: Game }) 
           </div>
           {current ? (
             <>
-              <div className="q-text">{current.question}</div>
-              <div className="q-answer">
-                <small>Antwort</small> {current.answer || '—'}
+              {current.question && <div className="q-text">{current.question}</div>}
+              <div className={`q-answer${current.question ? '' : ' main'}`}>
+                <small>{current.question ? 'Antwort' : 'Lösung'}</small> {current.answer || '—'}
               </div>
               {current.info && <div className="hint">{current.info}</div>}
               {current.hints.length > 0 && (
@@ -147,7 +139,7 @@ export default function QuizHost({ state, game }: { state: State; game: Game }) 
                   <span className="hint grow">
                     Hinweis {Math.min(shownHints, current.hints.length)} / {current.hints.length} gezeigt
                   </span>
-                  <button className="primary" disabled={!nextHint} onClick={() => void showNextHint()}>
+                  <button className="primary" disabled={!nextHint} onClick={showNextHint}>
                     {nextHint ? `Hinweis ${shownHints + 1} zeigen` : 'Alle gezeigt'}
                   </button>
                 </div>
@@ -213,7 +205,7 @@ export default function QuizHost({ state, game }: { state: State; game: Game }) 
       {questions && questions.length > 0 && (
         <div className="row">
           {index < 0 ? (
-            <button className="primary big" onClick={() => void show(0)}>
+            <button className="primary big" onClick={() => show(0)}>
               {label} 1 zeigen
             </button>
           ) : (
@@ -223,7 +215,7 @@ export default function QuizHost({ state, game }: { state: State; game: Game }) 
                   Auflösen
                 </button>
               )}
-              <button className="primary big" disabled={!upcoming} onClick={() => void show(index + 1)}>
+              <button className="primary big" disabled={!upcoming} onClick={() => show(index + 1)}>
                 {upcoming ? `Weiter: ${label} ${index + 2}` : 'Keine weiteren'}
               </button>
             </>
@@ -231,14 +223,14 @@ export default function QuizHost({ state, game }: { state: State; game: Game }) 
         </div>
       )}
       {index > 0 && (
-        <button onClick={() => void show(index - 1)}>
+        <button onClick={() => show(index - 1)}>
           ← Zurück zu {label} {index}
         </button>
       )}
       {upcoming && index >= 0 && (
         <p className="hint">
-          Als Nächstes: {upcoming.question.slice(0, 90)}
-          {upcoming.question.length > 90 ? '…' : ''}
+          Als Nächstes: {(upcoming.question || upcoming.answer).slice(0, 90)}
+          {(upcoming.question || upcoming.answer).length > 90 ? '…' : ''}
         </p>
       )}
 

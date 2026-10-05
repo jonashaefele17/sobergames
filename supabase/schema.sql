@@ -215,18 +215,8 @@ create policy "host manages questions"
   using (true)
   with check (true);
 
--- Bilder zu den Fragen: privater Bucket. Der Beamer bekommt erst beim Zeigen
--- einer Frage eine zeitlich begrenzte Signed URL.
-insert into storage.buckets (id, name, public)
-values ('sobergames-media', 'sobergames-media', false)
-on conflict (id) do update set public = false;
-
-drop policy if exists "host manages media" on storage.objects;
-create policy "host manages media"
-  on storage.objects for all
-  to authenticated
-  using (bucket_id = 'sobergames-media')
-  with check (bucket_id = 'sobergames-media');
+-- Bilder und Songs liegen nicht in Supabase, sondern im Repo unter public/media
+-- und werden mit der Seite ausgeliefert. Hier steht je Eintrag nur der Pfad.
 
 -- ============================================================
 -- Gemeinsame Uhr: Jedes Gerät gleicht sich damit ab, damit Countdown und

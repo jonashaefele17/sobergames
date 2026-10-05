@@ -318,3 +318,71 @@
   border-radius: 10px;
   border: 1px dashed var(--line);
 }
+
+.quiz-thumb.missing {
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  color: #ff8a80;
+}
+
+.quiz-editor .file-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.host .quiz-current .q-answer.main {
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.media-picker {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(3, 5, 12, 0.9);
+}
+
+.media-card {
+  width: min(100%, 720px);
+  max-height: 100%;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: var(--navy);
+}
+
+.media-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 8px;
+}
+
+.host .media-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px;
+  min-height: 0;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.media-item img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 6px;
+}
+
+.media-item.used {
+  opacity: 0.55;
+}
