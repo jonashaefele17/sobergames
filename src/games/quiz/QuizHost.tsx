@@ -7,65 +7,10 @@ import { teamStyle } from '../../lib/motion'
 import { gameStore } from '../../store'
 import type { Game, State } from '../../store/types'
 import { gameDef, gameName } from '../catalog'
+import { HostTimer } from '../common/HostTimer'
 import { questionStore, type Question } from './questionStore'
 
 const run = (fn: (s: State) => State) => gameStore.update(fn)
-
-function format(ms: number): string {
-  const total = Math.floor(Math.abs(ms) / 1000)
-  return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`
-}
-
-/** Countdown nur zur Orientierung: läuft über 0 hinaus weiter, gesperrt wird nichts. */
-function HostTimer({ state }: { state: State }) {
-  const timer = state.play.timer
-  const [now, setNow] = useState(() => Date.now())
-  useEffect(() => {
-    const id = window.setInterval(() => setNow(Date.now()), 500)
-    return () => window.clearInterval(id)
-  }, [])
-  const left = timer.durationMs - act.timerElapsed(timer, now)
-  const running = timer.startedAt !== null
-  const level = left <= 0 ? 'over' : left <= 5 * 60 * 1000 ? 'soon' : ''
-
-  return (
-    <div className={`host-timer ${level}`}>
-      <div className="time">
-        {left < 0 && '+'}
-        {format(left)}
-      </div>
-      <div className="hint">
-        {left <= 0 ? 'Zeit um – weiterspielen, solange es Spaß macht' : running ? 'läuft' : 'pausiert'}
-      </div>
-      <div className="row">
-        {running ? (
-          <button onClick={() => run(act.timerPause(Date.now()))}>Pause</button>
-        ) : (
-          <button className="primary" onClick={() => run(act.timerStart(Date.now()))}>
-            {timer.elapsedMs ? 'Weiter' : 'Start'}
-          </button>
-        )}
-        <button
-          onClick={() => {
-            if (confirm('Timer zurücksetzen?')) run(act.timerReset)
-          }}
-        >
-          Zurücksetzen
-        </button>
-        <label className="minutes">
-          <input
-            type="number"
-            min={1}
-            className="short"
-            value={Math.round(timer.durationMs / 60000)}
-            onChange={(e) => run(act.timerSetDuration(Number(e.target.value) || 1))}
-          />
-          min
-        </label>
-      </div>
-    </div>
-  )
-}
 
 /** Regiepult-Steuerung eines Buzzer-Quiz: Fragen zeigen, werten, auflösen, beenden. */
 export default function QuizHost({ state, game }: { state: State; game: Game }) {

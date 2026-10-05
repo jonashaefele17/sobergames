@@ -4,6 +4,7 @@ import { SceneHead } from '../../components/shared'
 import { EASE_OUT, SPRING } from '../../lib/motion'
 import type { Game, State } from '../../store/types'
 import { gameDef, gameName } from '../catalog'
+import { TitleCard } from '../common/TitleCard'
 
 /** Beamer-Ansicht eines Buzzer-Quiz: Frage groß, Antwort nach der Auflösung. */
 export default function QuizScene({ state, game }: { state: State; game: Game }) {
@@ -18,18 +19,7 @@ export default function QuizScene({ state, game }: { state: State; game: Game })
       <div className="scene-body">
         <AnimatePresence mode="wait">
           {!quiz ? (
-            <motion.div
-              key="title"
-              className="quiz-title"
-              initial={{ opacity: 0, scale: 0.92 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 1.04 }}
-              transition={{ duration: 0.7, ease: EASE_OUT }}
-            >
-              <div className="kicker">Spiel {state.games.findIndex((g) => g.id === game.id) + 1}</div>
-              <h1 className="gold-text">{gameName(game)}</h1>
-              <div className="sub">Gleich geht’s los</div>
-            </motion.div>
+            <TitleCard key="title" state={state} game={game} />
           ) : (
             <motion.div
               key={`q-${quiz.index}`}

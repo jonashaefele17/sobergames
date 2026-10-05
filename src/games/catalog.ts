@@ -1,12 +1,33 @@
 import type { Game } from '../store/types'
 
 /** Spielart: bestimmt, welche Steuerung, Beamer-Szene und Daten ein Spiel hat (siehe registry.tsx). */
-export type GameKind = 'plain' | 'quiz'
+export type GameKind = 'plain' | 'quiz' | 'score' | 'countdown' | 'stopwatch'
 
 export interface GameVariant {
   key: string
   name: string
   note?: string
+  /** abweichende Spielart, z. B. ohne eigene Spielseite */
+  kind?: GameKind
+}
+
+/**
+ * Punktetafel:
+ * - winner: pro Runde gewinnt ein Team (+1)
+ * - steps: Knöpfe mit festen Punktwerten je Team
+ * - round: pro Runde eine Zahl je Team (0 … max)
+ * - free: pro Runde beliebige Punkte je Team, auch Abzug
+ * - shots: jedes Team hat eine feste Zahl Versuche, jeder wird einzeln mit einem Punktwert eingetragen
+ */
+export interface ScoreConfig {
+  mode: 'winner' | 'steps' | 'round' | 'free' | 'shots'
+  /** wählbare Punktwerte (steps, shots) */
+  steps?: number[]
+  max?: number
+  /** Versuche je Team (shots), im Regiepult änderbar */
+  shots?: number
+  /** voreingestellte Zielpunktzahl, im Regiepult änderbar */
+  target?: number
 }
 
 export interface QuizConfig {
@@ -24,38 +45,78 @@ export interface GameDef {
   kind: GameKind
   variants?: GameVariant[]
   quiz?: QuizConfig
+  score?: ScoreConfig
+  /** Voreinstellung des Timers in Minuten (Countdown auf dem Beamer bzw. Orientierung im Regiepult) */
+  timerMinutes?: number
+  /** Einheit eingetragener Messwerte, z. B. cm */
+  unit?: string
 }
 
 /** Die Spiele des Abends in der geplanten Reihenfolge; die Reihenfolge lässt sich im Regiepult ändern. */
 export const GAMES: GameDef[] = [
-  { id: 'last-cup-standing', name: 'Last Cup Standing', category: 'Geschicklichkeit', kind: 'plain' },
+  {
+    id: 'last-cup-standing',
+    name: 'Last Cup Standing',
+    category: 'Geschicklichkeit',
+    kind: 'score',
+    score: { mode: 'winner', target: 5 },
+  },
   {
     id: 'arschbolzen',
     name: 'Arschbolzen',
     category: 'Geschicklichkeit',
-    kind: 'plain',
+    kind: 'score',
+    // je Schuss wählt das Team die Distanz: nah 1, mittel 2, weit 3 Punkte; daneben 0
+    score: { mode: 'shots', shots: 6, steps: [0, 1, 2, 3] },
     variants: [
       { key: 'arschbolzen', name: 'Arschbolzen' },
-      { key: 'kippmoment', name: 'Kippmoment', note: 'bei schlechtem Wetter' },
+      // Kippmoment wird vor Ort gewertet: nur der Sieger wird im Spiele-Tab eingetragen
+      { key: 'kippmoment', name: 'Kippmoment', note: 'bei schlechtem Wetter', kind: 'plain' },
     ],
   },
-  { id: 'ex-oder-zieh', name: 'Ex oder zieh', category: 'Party', kind: 'plain' },
+  { id: 'ex-oder-zieh', name: 'Ex oder zieh', category: 'Party', kind: 'stopwatch' },
   { id: 'wer-wuerde-eher', name: 'Wer würde eher', category: 'Soziales', kind: 'plain' },
-  { id: 'songs-erraten', name: 'Songs erraten', category: 'Musik', kind: 'quiz', quiz: { itemLabel: 'Song' } },
-  { id: 'build-it', name: 'Build it', category: 'Geschicklichkeit', kind: 'plain' },
+  { id: 'songs-erraten', name: 'Songs erraten', category: 'Musik', kind: 'quiz', quiz: { itemLabel: 'Song' }, timerMinutes: 25 },
+  {
+    id: 'build-it',
+    name: 'Build it',
+    category: 'Geschicklichkeit',
+    kind: 'countdown',
+    timerMinutes: 5,
+    unit: 'cm',
+  },
   {
     id: 'guess-the-location',
     name: 'Guess the Location',
     category: 'Wissen',
     kind: 'quiz',
     quiz: { itemLabel: 'Ort', imageFirst: true },
+    timerMinutes: 25,
   },
-  { id: 'scribble-rush', name: 'Scribble Rush', category: 'Kreativität', kind: 'plain' },
-  { id: 'allgemeinwissen', name: 'Allgemeinwissen', category: 'Wissen', kind: 'quiz', quiz: { itemLabel: 'Frage' } },
+  {
+    id: 'scribble-rush',
+    name: 'Scribble Rush',
+    category: 'Kreativität',
+    kind: 'score',
+    score: { mode: 'round', max: 12 },
+  },
+  { id: 'allgemeinwissen', name: 'Allgemeinwissen', category: 'Wissen', kind: 'quiz', quiz: { itemLabel: 'Frage' }, timerMinutes: 25 },
   { id: 'perfect-cut', name: 'Perfect Cut', category: 'Geschicklichkeit', kind: 'plain' },
   { id: 'schaetzfragen', name: 'Schätzfragen', category: 'Wissen', kind: 'plain' },
-  { id: 'closest-to-the-edge', name: 'Closest to the Edge', category: 'Geschicklichkeit', kind: 'plain' },
-  { id: 'mein-team-kann', name: 'Mein Team kann', category: 'Allgemeines', kind: 'plain' },
+  {
+    id: 'closest-to-the-edge',
+    name: 'Closest to the Edge',
+    category: 'Geschicklichkeit',
+    kind: 'score',
+    score: { mode: 'winner' },
+  },
+  {
+    id: 'mein-team-kann',
+    name: 'Mein Team kann',
+    category: 'Allgemeines',
+    kind: 'score',
+    score: { mode: 'free' },
+  },
 ]
 
 const BY_ID = new Map(GAMES.map((d) => [d.id, d]))
@@ -76,4 +137,9 @@ export function gameVariant(game: Pick<Game, 'id' | 'variant'>): GameVariant | n
 /** Anzeigename inklusive gewählter Variante */
 export function gameName(game: Pick<Game, 'id' | 'variant'>): string {
   return gameVariant(game)?.name ?? gameDef(game.id).name
+}
+
+/** geltende Spielart: die gewählte Variante kann sie überschreiben */
+export function gameKind(game: Pick<Game, 'id' | 'variant'>): GameKind {
+  return gameVariant(game)?.kind ?? gameDef(game.id).kind
 }

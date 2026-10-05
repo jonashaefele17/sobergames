@@ -1,4 +1,4 @@
-import { GAMES, isKnownGame } from '../games/catalog'
+import { GAMES, gameDef, isKnownGame } from '../games/catalog'
 import type { Game, GameResult, Play, Player, QuizView, Scene, State, Team } from '../store/types'
 
 export const TEAM_COLORS = ['#ef5350', '#42a5f5', '#34c98a', '#ab7dff', '#ff9140', '#f062a6']
@@ -22,6 +22,7 @@ const freshPlay = (durationMs = DEFAULT_TIMER_MS): Play => ({
   gameId: null,
   quiz: null,
   timer: { durationMs, startedAt: null, elapsedMs: 0 },
+  data: {},
 })
 
 export function initialState(): State {
@@ -64,7 +65,7 @@ export function normalize(raw: Partial<State> | null | undefined): State {
     }),
     ...missing,
   ]
-  const play = { ...base.play, ...raw.play, timer: { ...base.play.timer, ...raw.play?.timer } }
+  const play = { ...base.play, ...raw.play, timer: { ...base.play.timer, ...raw.play?.timer }, data: raw.play?.data ?? {} }
   return { ...base, ...raw, scoring, games, play }
 }
 
@@ -284,7 +285,7 @@ export const startPlay = (gameId: string) => (s: State): State => ({
   ...s,
   scene: 'play',
   games: s.games.map((g) => (g.id === gameId ? { ...g, revealed: true } : g)),
-  play: { ...freshPlay(s.play.timer.durationMs), gameId },
+  play: { ...freshPlay((gameDef(gameId).timerMinutes ?? DEFAULT_TIMER_MS / 60000) * 60000), gameId },
 })
 
 /** Zeigt eine Frage; Antwort und Zusatzinfo bleiben bis zur Auflösung geheim. */
@@ -305,6 +306,34 @@ export const endPlay = (scores: Record<string, number>) => (s: State): State => 
   const gameId = s.play.gameId
   const withResult = gameId ? setResultFromScores(gameId, scores)(s) : s
   return { ...withResult, scene: 'scoreboard', play: freshPlay(s.play.timer.durationMs) }
+}
+
+/**
+ * Beendet das Spiel mit Messwerten je Team (Zeit, Höhe, Differenz …). Teams
+ * ohne Wert landen gemeinsam auf dem letzten Platz.
+ */
+export const endPlayRanked = (values: Record<string, number>, lowerWins: boolean) => (s: State): State => {
+  const gameId = s.play.gameId
+  if (!gameId) return leavePlay(s)
+  const withValue = s.teams.filter((t) => values[t.id] !== undefined)
+  const distinct = [...new Set(withValue.map((t) => values[t.id]))].sort((a, b) => (lowerWins ? a - b : b - a))
+  const places = distinct.map((v) => withValue.filter((t) => values[t.id] === v).map((t) => t.id))
+  const rest = s.teams.filter((t) => values[t.id] === undefined).map((t) => t.id)
+  if (rest.length) places.push(rest)
+  return {
+    ...s,
+    scene: 'scoreboard',
+    games: s.games.map((g) => (g.id === gameId ? { ...g, result: { places } } : g)),
+    play: freshPlay(),
+  }
+}
+
+/** eingetragenen Messwert eines Teams setzen oder löschen */
+export const setPlayValue = (teamId: string, value: number | null) => (s: State): State => {
+  const values = { ...s.play.data.values }
+  if (value === null) delete values[teamId]
+  else values[teamId] = value
+  return { ...s, play: { ...s.play, data: { ...s.play.data, values } } }
 }
 
 /** Spielseite ohne Wertung verlassen */

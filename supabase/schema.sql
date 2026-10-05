@@ -226,6 +226,21 @@ create policy "host manages media"
   with check (bucket_id = 'sobergames-media');
 
 -- ============================================================
+-- Gemeinsame Uhr: Jedes Gerät gleicht sich damit ab, damit Countdown und
+-- Stoppuhr überall gleich laufen. Gibt die Serverzeit in Millisekunden zurück.
+-- ============================================================
+
+create or replace function public.sobergames_now()
+returns double precision
+language sql
+volatile
+as $$
+  select extract(epoch from clock_timestamp()) * 1000;
+$$;
+
+grant execute on function public.sobergames_now() to anon, authenticated;
+
+-- ============================================================
 -- Realtime so projector, laptop and phones stay in sync.
 -- ============================================================
 

@@ -8,7 +8,7 @@ import { gamePoints, maxSwing, standings } from '../lib/scoring'
 import { SPRING, teamStyle } from '../lib/motion'
 import { buzzerStore } from '../buzzer'
 import { BuzzerPanel } from '../buzzer/BuzzerPanel'
-import { gameDef, gameName } from '../games/catalog'
+import { gameDef, gameKind, gameName } from '../games/catalog'
 import { KINDS } from '../games/registry'
 import { gameStore, useGame } from '../store'
 import type { Game, Scene, State } from '../store/types'
@@ -246,7 +246,7 @@ function GamesPanel({ state, onStart }: { state: State; onStart: (gameId: string
                 {gameName(game)}
                 {finale && <span className="tag">Finale ×{state.scoring.finaleFactor}</span>}
               </span>
-              {KINDS[gameDef(game.id).kind].Host && (
+              {KINDS[gameKind(game)].Host && (
                 <button className={state.play.gameId === game.id ? 'on' : ''} onClick={() => onStart(game.id)}>
                   {state.play.gameId === game.id ? 'Läuft' : 'Spiel starten'}
                 </button>
@@ -492,7 +492,7 @@ export default function Host() {
   if (session === null) return <Login />
 
   const playing = state.games.find((g) => g.id === state.play.gameId)
-  const PlayHost = playing ? KINDS[gameDef(playing.id).kind].Host : undefined
+  const PlayHost = playing ? KINDS[gameKind(playing)].Host : undefined
   const Editor = editing ? KINDS[gameDef(editing).kind].Editor : undefined
   const tabs = TABS.filter(([key]) => key !== 'play' || playing)
 

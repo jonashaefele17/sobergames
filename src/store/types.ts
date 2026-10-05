@@ -47,10 +47,40 @@ export interface Timer {
   elapsedMs: number
 }
 
+/** Eine Buchung auf der Punktetafel: Punkte je Team */
+export interface ScoreRound {
+  id: string
+  points: Record<string, number>
+}
+
+export interface ScoreData {
+  rounds: ScoreRound[]
+  /** Zielpunktzahl; null = ohne Ziel */
+  target: number | null
+  /** Modus „shots“: Punkte je Versuch und Team, null = noch offen */
+  shots?: Record<string, (number | null)[]>
+  shotCount?: number
+}
+
+export interface StopwatchData {
+  /** gestoppte Zeit je Team in ms */
+  times: Record<string, number>
+  running: { teamId: string; startedAt: number } | null
+}
+
+/** Daten der laufenden Spielart; jede Spielart nutzt nur ihren Teil. */
+export interface PlayData {
+  score?: ScoreData
+  stopwatch?: StopwatchData
+  /** eingetragene Messwerte je Team, z. B. Turmhöhe */
+  values?: Record<string, number>
+}
+
 export interface Play {
   gameId: string | null
   quiz: QuizView | null
   timer: Timer
+  data: PlayData
 }
 
 export interface Scoring {

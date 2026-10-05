@@ -1,0 +1,96 @@
+/* ---------- Beamer ---------- */
+
+.stopwatch {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+  align-items: center;
+  gap: calc(var(--u) * 4);
+}
+
+.sw-main {
+  text-align: center;
+}
+
+.sw-who {
+  font-size: calc(var(--u) * 3.6);
+  color: var(--team);
+  letter-spacing: 0.06em;
+}
+
+.sw-clock {
+  font-size: calc(var(--u) * 19);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: rgba(255, 255, 255, 0.9);
+  transition: color var(--t-mid) var(--ease-out);
+}
+
+.sw-clock.running {
+  background: var(--gold-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.sw-list {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--u) * 1);
+}
+
+.sw-row {
+  display: grid;
+  grid-template-columns: calc(var(--u) * 3.5) minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: calc(var(--u) * 1);
+  padding: calc(var(--u) * 1) calc(var(--u) * 1.6) calc(var(--u) * 0.8);
+  border-radius: calc(var(--u) * 0.8);
+  border: 1px solid var(--line);
+  border-left: calc(var(--u) * 0.6) solid var(--team);
+  background: var(--glass);
+  font-size: calc(var(--u) * 2.6);
+}
+
+.sw-row.best {
+  border-color: rgba(var(--gold-rgb), 0.7);
+  border-left-color: var(--team);
+  box-shadow: 0 0 calc(var(--u) * 2.5) rgba(var(--gold-rgb), 0.2);
+}
+
+.sw-row.waiting {
+  opacity: 0.5;
+}
+
+.sw-row .rank {
+  color: var(--muted);
+}
+
+.sw-row .tname {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sw-row .time {
+  font-size: calc(var(--u) * 3.4);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Regiepult ---------- */
+
+.host .sw-team {
+  border-left: 5px solid var(--team);
+}
+
+.host .sw-team.running {
+  border-color: var(--gold);
+}
+
+.host .sw-time {
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 30px;
+  font-variant-numeric: tabular-nums;
+}

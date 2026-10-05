@@ -25,6 +25,23 @@ Taucht ein QR-Code beim falschen Team auf, erzeugt **Neuer Code** einen neuen, d
 
 Die 13 Spiele stehen fest in `src/games/catalog.ts`. Im Regiepult unter **Setup** lässt sich nur ihre Reihenfolge ändern; das letzte Spiel ist immer das Finale. Bei Arschbolzen gibt es dort den Umschalter auf die Schlechtwetter-Variante **Kippmoment**.
 
+Jedes Spiel mit eigener Seite startet im Spiele-Tab über **„Spiel starten“** und wird im Tab **Spiel** gesteuert. Am Ende macht **„Spiel beenden & werten“** aus dem Ergebnis die Platzierung (3/2/1, bei Gleichstand geteilt).
+
+| Spielart | Spiele | Im Regiepult |
+|---|---|---|
+| Punktetafel | Last Cup Standing, Closest to the Edge | „Runde an Team X“, optional mit Zielpunktzahl |
+| Punktetafel | Arschbolzen | je Team 6 Versuche (änderbar), jeder einzeln mit 0 / 1 / 2 / 3 Punkten |
+| Punktetafel | Scribble Rush, Mein Team kann | Punkte je Team eintragen, „Runde buchen“ |
+| Stoppuhr | Ex oder zieh | je Team Start/Stopp, kürzeste Zeit gewinnt |
+| Countdown | Build it | Timer läuft groß auf dem Beamer, danach Werte eintragen |
+| Buzzer-Quiz | Allgemeinwissen, Guess the Location, Songs erraten | siehe unten |
+
+Jede Buchung lässt sich rückgängig machen oder einzeln löschen. Zielpunktzahl, Zahl der Versuche und Timer-Voreinstellung stehen je Spiel in `src/games/catalog.ts`. Kippmoment (Schlechtwetter-Variante von Arschbolzen) hat keine Spielseite: Dort wird nur der Sieger im Spiele-Tab eingetragen.
+
+**Ton beim Countdown:** In den letzten 10 Sekunden pocht es, bei 0 kommt ein Schlusston. Browser spielen Ton erst nach einer Eingabe im jeweiligen Fenster: im Beamer-Fenster einmal klicken oder eine Taste drücken (z. B. `F` für Vollbild), `S` schaltet um. Alternativ im Tab „Spiel“ „Ton auf diesem Gerät abspielen“ anhaken.
+
+**Gemeinsame Uhr:** Alle Geräte gleichen ihre Uhr beim Laden mit dem Supabase-Server ab. Countdown und Stoppuhr laufen dadurch überall gleich, und eine Zeit darf auf einem Gerät gestartet und auf einem anderen gestoppt werden.
+
 Allgemeinwissen, Guess the Location und Songs erraten sind **Buzzer-Quiz**-Spiele mit eigener Spielseite:
 
 1. **Fragen pflegen:** Setup → beim Spiel **„Fragen bearbeiten“**. Eine Liste lässt sich einfügen: eine Zeile pro Frage, `Frage | Antwort | Zusatzinfo`, oder direkt aus Excel/Google Sheets kopiert (Spalten Frage, Antwort, Info). Danach einzeln bearbeiten, sortieren und optional ein Bild hinzufügen. Gespeichert wird automatisch, und nur mit Host-Login lesbar.

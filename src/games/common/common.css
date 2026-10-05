@@ -1,0 +1,90 @@
+/* ---------- Titelseite eines Spiels (Beamer) ---------- */
+
+.title-card {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.title-card .kicker {
+  font-size: calc(var(--u) * 2.2);
+  letter-spacing: 0.5em;
+  margin-right: -0.5em;
+  color: var(--muted);
+}
+
+.title-card h1 {
+  margin: calc(var(--u) * 0.6) 0;
+  font-size: calc(var(--u) * 11);
+  font-weight: 400;
+  line-height: 0.95;
+}
+
+.title-card .sub {
+  font-size: calc(var(--u) * 2.2);
+  letter-spacing: 0.3em;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* ---------- Timer im Regiepult ---------- */
+
+.host .host-timer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: var(--navy);
+  transition:
+    border-color var(--t-mid) var(--ease-out),
+    background var(--t-mid) var(--ease-out);
+}
+
+.host .host-timer .time {
+  font-family: var(--display);
+  font-size: 64px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  transition: color var(--t-mid) var(--ease-out);
+}
+
+.host .host-timer.soon {
+  border-color: rgba(var(--gold-rgb), 0.6);
+}
+
+.host .host-timer.soon .time {
+  color: var(--gold);
+}
+
+.host .host-timer.over {
+  border-color: #ef5350;
+  background: rgba(239, 83, 80, 0.12);
+}
+
+.host .host-timer.over .time {
+  color: #ff8a80;
+}
+
+.host .host-timer .minutes {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+}
+
+/* ---------- Eingaben im Regiepult ---------- */
+
+.host .value-row input {
+  width: 96px;
+}
+
+.host .value-row .unit {
+  width: 28px;
+  color: var(--muted);
+}

@@ -2,12 +2,12 @@ import { lazy, Suspense, useEffect } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { Backdrop } from './components/shared'
 import { EASE_OUT } from './lib/motion'
-import { toggleSound } from './lib/sound'
+import { enableSound, toggleSound } from './lib/sound'
 import { GamesScene, ScoreboardScene, TeamsScene, WinnerScene } from './scenes/Scenes'
 import WheelScene from './scenes/Wheel'
 import { useBuzzer } from './buzzer'
 import { BuzzerOverlay } from './buzzer/BuzzerOverlay'
-import { gameDef } from './games/catalog'
+import { gameKind } from './games/catalog'
 import { KINDS } from './games/registry'
 import { useGame } from './store'
 import type { State } from './store/types'
@@ -35,7 +35,7 @@ function SceneView({ state, buzzerOn }: { state: State; buzzerOn: boolean }) {
       return <WinnerScene state={state} />
     case 'play': {
       const game = state.games.find((g) => g.id === state.play.gameId)
-      const Scene = game ? KINDS[gameDef(game.id).kind].Scene : undefined
+      const Scene = game ? KINDS[gameKind(game)].Scene : undefined
       return game && Scene ? <Scene state={state} game={game} /> : <GamesScene state={state} hideTicker={buzzerOn} />
     }
   }
@@ -46,8 +46,8 @@ export default function Show() {
   const { ready, state } = useGame()
   const buzzer = useBuzzer().state
   // Der Buzzer erscheint nur auf der Spielseite eines Buzzer-Spiels, dort aber dauerhaft
-  const playKind = state.scene === 'play' && state.play.gameId ? gameDef(state.play.gameId).kind : null
-  const buzzerOn = playKind === 'quiz'
+  const playing = state.scene === 'play' ? state.games.find((g) => g.id === state.play.gameId) : undefined
+  const buzzerOn = playing !== undefined && gameKind(playing) === 'quiz'
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -55,10 +55,16 @@ export default function Show() {
         if (document.fullscreenElement) void document.exitFullscreen()
         else void document.documentElement.requestFullscreen()
       }
+      // jede andere Taste schaltet den Ton ein (Browser brauchen dafür eine Eingabe), S schaltet um
       if (e.key === 's' || e.key === 'S') toggleSound()
+      else enableSound()
     }
     window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
+    window.addEventListener('pointerdown', enableSound)
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      window.removeEventListener('pointerdown', enableSound)
+    }
   }, [])
 
   return (
