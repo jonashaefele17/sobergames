@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useRef, useState } from 'react'
 import { motion } from 'motion/react'
 import '../host/host.css'
 import '../games/quiz/quiz.css'
@@ -13,6 +13,7 @@ import { newQuestion, questionStore, type Hint, type Question } from '../games/q
 import { parseNumber } from '../games/estimate/logic'
 import NumberInput from '../games/estimate/NumberInput'
 import { countStatus, gameToIdeas, hasGameList, IDEA_GAMES, ideaKey, ideaProblems, ideaTitle, starredToGame, type IdeaStatus } from './ideas'
+import PrintTerms from './PrintTerms'
 import QuestionFiles from './QuestionFiles'
 
 const pad = (n: number) => String(n).padStart(2, '0')
@@ -324,6 +325,7 @@ function CollectPage({ local }: { local: boolean }) {
   const [save, setSave] = useState<SaveState>('idle')
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
+  const [printing, setPrinting] = useState(false)
   const dirty = useRef(new Set<string>())
 
   useEffect(() => {
@@ -490,6 +492,7 @@ function CollectPage({ local }: { local: boolean }) {
         ) : (
           <p className="hint">Dieses Spiel hat im Regiepult keine Liste. Die ⭐ sind dein Spickzettel für den Abend.</p>
         )}
+        {game.perRound && <button onClick={() => setPrinting(true)}>Drucken / PDF</button>}
         {message && <p className="hint">{message}</p>}
       </section>
 
@@ -504,19 +507,22 @@ function CollectPage({ local }: { local: boolean }) {
 
       {visible.length === 0 && <p className="hint collect-empty">{list.length ? 'Hier ist gerade nichts.' : `Noch keine Ideen. Mit + fügst du die erste ${label === 'Frage' ? 'Frage' : 'Idee'} hinzu.`}</p>}
       {visible.map((q, i) => (
-        <IdeaCard
-          key={q.id}
-          gameId={gameId}
-          q={q}
-          index={list.indexOf(q)}
-          open={opened.has(q.id)}
-          first={i === 0}
-          last={i === visible.length - 1}
-          onToggle={() => toggle(q.id)}
-          onStatus={(status) => update(q.id, { status: q.status === status ? undefined : status })}
-          onMove={(dir) => move(q, dir)}
-          onEdit={() => setEditing({ draft: q, isNew: false })}
-        />
+        <Fragment key={q.id}>
+          {/* in der ⭐-Ansicht ergeben sich die Runden aus der Reihenfolge */}
+          {game.perRound && filter === 'star' && i % game.perRound === 0 && <h3 className="idea-round">Runde {i / game.perRound + 1}</h3>}
+          <IdeaCard
+            gameId={gameId}
+            q={q}
+            index={list.indexOf(q)}
+            open={opened.has(q.id)}
+            first={i === 0}
+            last={i === visible.length - 1}
+            onToggle={() => toggle(q.id)}
+            onStatus={(status) => update(q.id, { status: q.status === status ? undefined : status })}
+            onMove={(dir) => move(q, dir)}
+            onEdit={() => setEditing({ draft: q, isNew: false })}
+          />
+        </Fragment>
       ))}
 
       <h2>Mehr</h2>
@@ -536,6 +542,8 @@ function CollectPage({ local }: { local: boolean }) {
       <button className="collect-fab" aria-label={`${label} hinzufügen`} onClick={() => setEditing({ draft: newQuestion({ note: '' }), isNew: true })}>
         +
       </button>
+
+      {printing && game.perRound && <PrintTerms gameId={gameId} perRound={game.perRound} onClose={() => setPrinting(false)} />}
 
       {editing && (
         <IdeaSheet

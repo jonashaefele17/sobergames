@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest'
+import { gameDef } from '../games/catalog'
 import { newQuestion } from '../games/quiz/questionStore'
+import { hideTerms, showTerms, termRounds, termsView } from '../games/score/terms'
+import * as act from '../lib/actions'
 import { describeQuestionExport, parseQuestionExport } from '../lib/backup'
-import { gameToIdeas, ideaKey, ideaProblems, starredToGame } from './ideas'
+import { gameToIdeas, IDEA_GAMES, ideaKey, ideaProblems, starredToGame } from './ideas'
 
 describe('Sammlung', () => {
   it('nur ⭐ kommen ins Spiel, in ihrer Reihenfolge, mit neuen IDs und ohne Bewertung', () => {
@@ -38,6 +41,36 @@ describe('Sammlung', () => {
 
   it('eigener Schlüssel, den kein Spiel liest', () => {
     expect(ideaKey('allgemeinwissen')).toBe('ideen:allgemeinwissen')
+  })
+})
+
+describe('Begriffe (Scribble Rush)', () => {
+  const terms = Array.from({ length: 28 }, (_, i) => `Begriff ${i + 1}`)
+
+  it('je 12 Begriffe eine Runde, der Rest bildet die letzte', () => {
+    const rounds = termRounds(terms)
+    expect(rounds.map((r) => r.length)).toEqual([12, 12, 4])
+    expect(rounds[1][0]).toBe('Begriff 13')
+    expect(termRounds([])).toEqual([])
+  })
+
+  it('auf den Beamer kommen nur die aufgedeckten Begriffe', () => {
+    const round2 = termRounds(terms)[1]
+    let s = act.startPlay('scribble-rush')(act.initialState())
+    expect(termsView(s)).toBeNull()
+    s = showTerms(1, round2, 0)(s)
+    expect(termsView(s)).toEqual({ round: 1, total: 12, shown: [] })
+    s = showTerms(1, round2, 2)(s)
+    expect(termsView(s)?.shown).toEqual(['Begriff 13', 'Begriff 14'])
+    expect(JSON.stringify(s)).not.toContain('Begriff 15')
+    s = showTerms(1, round2, 99)(s)
+    expect(termsView(s)?.shown).toHaveLength(12)
+    expect(termsView(hideTerms(s))).toBeNull()
+  })
+
+  it('Scribble Rush hat eine Begriffsliste und bleibt eine Punktetafel', () => {
+    expect(gameDef('scribble-rush')).toMatchObject({ kind: 'score', quiz: { itemLabel: 'Begriff', noAnswer: true } })
+    expect(IDEA_GAMES.find((g) => g.id === 'scribble-rush')).toMatchObject({ goal: 48, perRound: 12 })
   })
 })
 

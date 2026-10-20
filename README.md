@@ -80,6 +80,10 @@ Die Schätzungen der anderen kann kein Handy lesen; auf den Beamer kommen sie er
 
 „Mein Team kann“ hat keine Fragenliste im Regiepult; dort sind die ⭐ der Spickzettel für den Abend.
 
+**Scribble Rush** (Ziel 48 Begriffe = 4 Runden): Die Reihenfolge der ⭐ ergibt die Runden, 1–12 ist Runde 1, 13–24 Runde 2 usw.; mit dem Filter ⭐ stehen die Runden als Zwischenüberschriften in der Liste. Nach dem Übernehmen druckt **„Drucken / PDF“** je Runde eine A4-Seite mit den 12 nummerierten Kästchen und ihren Begriffen (im Druckdialog „Als PDF speichern“ wählen).
+
+Am Abend steht im Tab „Spiel“ über der Punktevergabe **„Begriffe Runde 1“**: Du siehst alle 12 Begriffe, „Auflösung auf den Beamer“ zeigt das leere Raster, „Begriff 1 aufdecken“ füllt Kästchen für Kästchen. Auf den Beamer kommen nur die aufgedeckten Begriffe. Danach wie gewohnt die Punkte je Team eintragen und „Runde buchen“: Der Beamer zeigt wieder die Tafel, und die nächste Runde ist dran.
+
 **Fragen exportieren / importieren** (in der Sammlung und im Tab Reset) speichert Spiellisten und Sammlung als eigene Datei. Beim Import werden nur die Fragen der Spiele in der Datei ersetzt; Spielstand, Spieler und Teams bleiben. Eine komplette Sicherung lässt sich dort auch einspielen, dann werden nur ihre Fragen genommen.
 
 Die Sammlung braucht zwei neue Spalten: nach dem Update `supabase/schema.sql` einmal im SQL-Editor ausführen.

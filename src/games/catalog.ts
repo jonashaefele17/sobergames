@@ -114,6 +114,8 @@ export const GAMES: GameDef[] = [
     name: 'Scribble Rush',
     kind: 'score',
     score: { mode: 'round', max: 12 },
+    // Begriffe zum Zeichnen, je 12 eine Runde (siehe score/terms.ts); gepflegt in der Sammlung
+    quiz: { itemLabel: 'Begriff', noAnswer: true, plainList: true },
   },
   { id: 'allgemeinwissen', name: 'Allgemeinwissen', kind: 'quiz', quiz: { itemLabel: 'Frage' }, timerMinutes: 25 },
   {

@@ -6,6 +6,7 @@ import type { Game, State } from '../../store/types'
 import { TitleCard } from '../common/TitleCard'
 import { gameDef, gameName } from '../catalog'
 import { hasEntries, reached, scoreData, teamShots, totals } from './logic'
+import { termsView } from './terms'
 
 const MAX_CHIPS = 14
 
@@ -25,13 +26,16 @@ export default function ScoreScene({ state, game }: { state: State; game: Game }
   const perRound = config?.mode === 'round' || config?.mode === 'free'
   // nur bei festen Punktknöpfen ist eine Buchung keine Runde
   const unit = config?.mode === 'steps' ? 'Buchung' : 'Runde'
+  const terms = termsView(state)
 
   return (
     <div className="scene">
       <SceneHead
         title={gameName(game)}
         sub={
-          shotMode
+          terms
+            ? `Auflösung Runde ${terms.round + 1}`
+            : shotMode
             ? `${data.shotCount} Versuche`
             : data.rounds.length
               ? `${unit} ${data.rounds.length}${data.target ? ` · Ziel ${data.target}` : ''}`
@@ -40,7 +44,35 @@ export default function ScoreScene({ state, game }: { state: State; game: Game }
       />
       <div className="scene-body">
         <AnimatePresence mode="wait">
-          {!started ? (
+          {terms ? (
+            <motion.div
+              key={`terms-${terms.round}`}
+              className="terms-grid"
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.5, ease: EASE_OUT }}
+            >
+              {Array.from({ length: terms.total }, (_, i) => (
+                <div key={i} className={`term-cell${i < terms.shown.length ? ' shown' : ''}${i === terms.shown.length - 1 ? ' latest' : ''}`}>
+                  <span className="term-num">{i + 1}</span>
+                  <AnimatePresence>
+                    {i < terms.shown.length && (
+                      <motion.span
+                        className="term-text"
+                        initial={{ opacity: 0, scale: 0.6 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={SPRING}
+                      >
+                        {terms.shown[i]}
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
+                </div>
+              ))}
+            </motion.div>
+          ) : !started ? (
             <TitleCard key="title" state={state} game={game} sub={data.target ? `Wer zuerst ${data.target} Punkte hat` : undefined} />
           ) : (
             <motion.div

@@ -1,5 +1,6 @@
 import { gameDef } from '../games/catalog'
 import { newQuestion, type Question } from '../games/quiz/questionStore'
+import { TERMS_PER_ROUND } from '../games/score/terms'
 
 /** Bewertung einer Idee; leer heißt noch offen */
 export type IdeaStatus = 'star' | 'maybe' | 'out'
@@ -10,6 +11,8 @@ export interface IdeaGame {
   goal?: number
   /** Bezeichnung, wenn das Spiel selbst keine Fragenliste hat */
   label?: string
+  /** die ⭐ werden in Runden dieser Größe gespielt und lassen sich drucken (Scribble Rush) */
+  perRound?: number
 }
 
 /** Spiele in der Sammlung, in dieser Reihenfolge */
@@ -19,6 +22,7 @@ export const IDEA_GAMES: IdeaGame[] = [
   { id: 'guess-the-location', goal: 15 },
   { id: 'allgemeinwissen', goal: 40 },
   { id: 'schaetzfragen', goal: 30 },
+  { id: 'scribble-rush', goal: 48, perRound: TERMS_PER_ROUND },
   { id: 'mein-team-kann', label: 'Kategorie' },
 ]
 

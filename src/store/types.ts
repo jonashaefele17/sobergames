@@ -104,6 +104,17 @@ export interface PlayData {
   awards?: Record<number, string[]>
   measure?: MeasureData
   estimate?: EstimateData
+  /** Scribble Rush: Auflösung einer Runde auf dem Beamer; fehlt oder null = Punktetafel */
+  terms?: TermsView | null
+}
+
+/** Die Begriffe einer Runde im Raster; nur die schon aufgedeckten stehen hier drin. */
+export interface TermsView {
+  /** 0-basiert */
+  round: number
+  /** Kästchen in dieser Runde */
+  total: number
+  shown: string[]
 }
 
 /** Schätzfragen: `nearest` = 1 Punkt für die kleinste Abweichung, `graded` = 2 / 1 */

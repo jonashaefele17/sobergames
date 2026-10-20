@@ -183,3 +183,105 @@
   width: auto;
   font-size: 22px;
 }
+
+/* ---------- Begriffe (Scribble Rush) ---------- */
+
+.terms-grid {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-auto-rows: minmax(0, 1fr);
+  gap: calc(var(--u) * 1.2);
+}
+
+.term-cell {
+  position: relative;
+  display: grid;
+  place-items: center;
+  padding: calc(var(--u) * 1.2);
+  border-radius: calc(var(--u) * 1.2);
+  border: 1px solid var(--line);
+  background: var(--glass);
+  text-align: center;
+  transition:
+    border-color var(--t-mid) var(--ease-out),
+    box-shadow var(--t-mid) var(--ease-out);
+}
+
+.term-cell.latest {
+  border-color: rgba(var(--gold-rgb), 0.8);
+  box-shadow: 0 0 calc(var(--u) * 3) rgba(var(--gold-rgb), 0.25);
+}
+
+.term-num {
+  position: absolute;
+  top: calc(var(--u) * 0.8);
+  left: calc(var(--u) * 1.1);
+  font-size: calc(var(--u) * 2.4);
+  line-height: 1;
+  color: var(--gold);
+}
+
+.term-cell:not(.shown) .term-num {
+  position: static;
+  font-size: calc(var(--u) * 6);
+  color: rgba(255, 255, 255, 0.12);
+}
+
+.term-text {
+  font-size: calc(var(--u) * 3.4);
+  line-height: 1.05;
+  overflow-wrap: anywhere;
+}
+
+/* ---------- Regiepult: Begriffe ---------- */
+
+.host .terms-host {
+  border-color: rgba(var(--gold-rgb), 0.4);
+}
+
+.host .terms-title {
+  font-weight: 600;
+  text-align: center;
+}
+
+.host .terms-title small {
+  display: block;
+  font-weight: 400;
+}
+
+.host .terms-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.host .terms-list li {
+  display: flex;
+  gap: 8px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  overflow-wrap: anywhere;
+}
+
+.host .terms-list li b {
+  width: 22px;
+  flex: none;
+  color: var(--gold);
+  font-weight: 400;
+  font-family: var(--display);
+  font-size: 18px;
+}
+
+.host .terms-list li.shown {
+  color: var(--muted);
+}
+
+.host .terms-list li.next {
+  background: rgba(var(--gold-rgb), 0.18);
+  font-weight: 600;
+}

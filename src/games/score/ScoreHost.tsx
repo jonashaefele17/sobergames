@@ -6,6 +6,8 @@ import { gameStore } from '../../store'
 import type { Game, State } from '../../store/types'
 import { gameDef, gameName } from '../catalog'
 import { addRound, reached, removeRound, scoreData, setShot, setShotCount, setTarget, teamShots, totals, undoRound } from './logic'
+import { hideTerms, termsView } from './terms'
+import TermsPanel from './TermsPanel'
 
 const run = (fn: (s: State) => State) => gameStore.update(fn)
 
@@ -18,7 +20,10 @@ export default function ScoreHost({ state, game }: { state: State; game: Game })
   const done = reached(data, teamIds)
   const [draft, setDraft] = useState<Record<string, number>>({})
   const [picked, setPicked] = useState<{ teamId: string; index: number } | null>(null)
+  /** gewählte Runde der Begriffe; ohne Auswahl die Runde auf dem Beamer, sonst die nächste ungebuchte */
+  const [termRound, setTermRound] = useState<number | null>(null)
   const shotMode = config.mode === 'shots'
+  const withTerms = Boolean(gameDef(game.id).quiz)
 
   /** ausgewählter Versuch, sonst der nächste offene des ersten Teams, das noch Versuche hat */
   const current =
@@ -41,6 +46,11 @@ export default function ScoreHost({ state, game }: { state: State; game: Game })
   const bookDraft = () => {
     run(addRound(draft))
     setDraft({})
+    // nach dem Buchen zeigt der Beamer wieder die Tafel, und die nächste Runde ist dran
+    if (withTerms) {
+      run(hideTerms)
+      setTermRound(null)
+    }
   }
 
   const end = () => {
@@ -54,6 +64,10 @@ export default function ScoreHost({ state, game }: { state: State; game: Game })
     <section className="score-host">
       <h2>{gameName(game)}</h2>
       {done.length > 0 && <p className="warn">Gewonnen: {done.map(name).join(', ')}</p>}
+
+      {withTerms && (
+        <TermsPanel state={state} gameId={game.id} round={termRound ?? termsView(state)?.round ?? data.rounds.length} onRound={setTermRound} />
+      )}
 
       {shotMode && (
         <>
