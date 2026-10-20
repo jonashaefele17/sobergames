@@ -3,19 +3,27 @@ import Show from './Show.tsx'
 
 const Host = lazy(() => import('./host/Host.tsx'))
 const TeamPhone = lazy(() => import('./buzzer/TeamPhone.tsx'))
+const Collect = lazy(() => import('./collect/Collect.tsx'))
 
 const subscribeHash = (cb: () => void) => {
   window.addEventListener('hashchange', cb)
   return () => window.removeEventListener('hashchange', cb)
 }
 
-// Ansichten: `/` für den Beamer, `/#/host` für das Regiepult, `/#/buzz/<code>` für die Team-Handys
+// Ansichten: `/` für den Beamer, `/#/host` für das Regiepult, `/#/sammeln` für die Fragensammlung, `/#/buzz/<code>` für die Team-Handys
 export default function App() {
   const hash = useSyncExternalStore(subscribeHash, () => window.location.hash)
   if (hash.startsWith('#/buzz/')) {
     return (
       <Suspense fallback={null}>
         <TeamPhone token={decodeURIComponent(hash.slice('#/buzz/'.length))} />
+      </Suspense>
+    )
+  }
+  if (hash.startsWith('#/sammeln')) {
+    return (
+      <Suspense fallback={null}>
+        <Collect />
       </Suspense>
     )
   }

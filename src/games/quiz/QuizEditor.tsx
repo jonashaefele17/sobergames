@@ -14,7 +14,7 @@ const pad = (n: number) => String(n).padStart(2, '0')
 const SAVE_DELAY_MS = 600
 
 /** Vorschaubild einer Datei aus dem Medienordner */
-function Thumb({ path }: { path: string }) {
+export function Thumb({ path }: { path: string }) {
   const url = mediaUrl(path)
   return url ? (
     <img className="quiz-thumb" src={url} alt="" />
@@ -26,7 +26,7 @@ function Thumb({ path }: { path: string }) {
 }
 
 /** Auswahl eines Bildes aus dem Medienordner des Spiels; noch nicht verwendete stehen oben. */
-function MediaPicker({
+export function MediaPicker({
   gameId,
   kind,
   used,

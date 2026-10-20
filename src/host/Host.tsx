@@ -1,9 +1,10 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useState } from 'react'
 import { motion } from 'motion/react'
 import './host.css'
 import * as act from '../lib/actions'
 import { createBackup, describeBackup, parseBackup, restoreBackup } from '../lib/backup'
-import { signInHost, signOutHost, useHostSession } from '../lib/hostAuth'
+import { downloadJson, fileStamp } from '../lib/download'
+import { signOutHost, useHostSession } from '../lib/hostAuth'
 import { race } from '../lib/race'
 import { gamePoints, maxSwing, standings } from '../lib/scoring'
 import { SPRING, teamStyle } from '../lib/motion'
@@ -13,6 +14,8 @@ import { gameDef, gameKind, gameName, playingGame } from '../games/catalog'
 import { KINDS } from '../games/registry'
 import { gameStore, useGame } from '../store'
 import type { Game, Scene, State } from '../store/types'
+import QuestionFiles from '../collect/QuestionFiles'
+import Login from './Login'
 
 const run = (fn: (s: State) => State) => gameStore.update(fn)
 const pad = (n: number) => String(n).padStart(2, '0')
@@ -28,38 +31,6 @@ const SCENES: [Scene, string][] = [
 
 // so lange braucht die Show für Dreh + Namenseinblendung
 const SPIN_LOCK_MS = 9000
-
-function Login() {
-  const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState<string | null>(null)
-  const [submitting, setSubmitting] = useState(false)
-
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault()
-    setSubmitting(true)
-    setError(await signInHost(username, password))
-    setSubmitting(false)
-  }
-
-  return (
-    <form className="host login" onSubmit={handleSubmit}>
-      <h1>Host-Login</h1>
-      <label>
-        Benutzername
-        <input type="text" autoComplete="username" value={username} onChange={(e) => setUsername(e.target.value)} required />
-      </label>
-      <label>
-        Passwort
-        <input type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-      </label>
-      {error && <p className="error">{error}</p>}
-      <button type="submit" className="primary" disabled={submitting}>
-        {submitting ? 'Anmelden…' : 'Anmelden'}
-      </button>
-    </form>
-  )
-}
 
 const placeLabel = (place: number) => `${place + 1}.`
 
@@ -458,12 +429,7 @@ function ResetPanel({ state }: { state: State }) {
     setBusy(true)
     try {
       const backup = await createBackup(state)
-      const url = URL.createObjectURL(new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' }))
-      const link = document.createElement('a')
-      link.href = url
-      link.download = `sobergames-sicherung-${backup.createdAt.slice(0, 16).replace(/[:T]/g, '-')}.json`
-      link.click()
-      URL.revokeObjectURL(url)
+      downloadJson(`sobergames-sicherung-${fileStamp(backup.createdAt)}.json`, backup)
       setMessage('Sicherung heruntergeladen.')
     } catch (e) {
       setMessage(e instanceof Error ? e.message : 'Sicherung fehlgeschlagen')
@@ -495,8 +461,8 @@ function ResetPanel({ state }: { state: State }) {
     <section>
       <h2>Sicherung</h2>
       <p className="hint">
-        Enthält den kompletten Spielstand und alle Fragen, Orte und Objekte. Vor dem Abend einmal herunterladen, dann kann nichts verloren
-        gehen.
+        Enthält den kompletten Spielstand, alle Fragen, Orte und Objekte und die Sammlung. Vor dem Abend einmal herunterladen, dann kann
+        nichts verloren gehen.
       </p>
       <div className="row">
         <button className="primary" disabled={busy} onClick={() => void download()}>
@@ -516,6 +482,10 @@ function ResetPanel({ state }: { state: State }) {
         </label>
       </div>
       {message && <p className="hint">{message}</p>}
+
+      <h2>Nur Fragen</h2>
+      <p className="hint">Spiellisten und Sammlung als eigene Datei. Beim Importieren bleiben Spielstand, Spieler und Teams unberührt.</p>
+      <QuestionFiles />
 
       <h2>Zurücksetzen</h2>
       <p className="hint">Fragen, Orte und Objekte bleiben bei jedem Zurücksetzen erhalten.</p>
@@ -625,6 +595,7 @@ export default function Host() {
         <a href="#/" target="_blank" rel="noreferrer">
           Show-Ansicht öffnen
         </a>
+        <a href="#/sammeln">Fragen sammeln</a>
         <span className="grow" />
         {session !== 'local' && <button onClick={() => void signOutHost()}>Abmelden</button>}
       </footer>

@@ -206,6 +206,10 @@ alter table public.sobergames_questions add column if not exists hints jsonb not
 alter table public.sobergames_questions add column if not exists audio_path text;
 alter table public.sobergames_questions add column if not exists audio_start real not null default 0;
 
+-- nur für die Sammlung (game_id „ideen:<spiel>“): Bewertung (star / maybe / out, leer = offen) und eigene Notiz
+alter table public.sobergames_questions add column if not exists status text not null default '';
+alter table public.sobergames_questions add column if not exists note text not null default '';
+
 create index if not exists sobergames_questions_game on public.sobergames_questions (game_id, position);
 
 alter table public.sobergames_questions enable row level security;

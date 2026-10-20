@@ -8,6 +8,7 @@ Webseite, die durch den Abend führt: Logo-Intro, Teamauslosung per Glücksrad, 
 |---|---|
 | `/` | **Show** für den Beamer. Zeigt nur, was das Regiepult vorgibt. `F` = Vollbild, `S` = Rad-Ticken an/aus |
 | `/#/host` | **Regiepult** für Laptop und Handy: Szene wählen, Rad drehen, Spiele aufdecken, Punkte vergeben, Buzzer, Setup, Reset |
+| `/#/sammeln` | **Fragen sammeln** fürs Handy, mit Host-Login (siehe unten) |
 | `/#/buzz/<code>` | **Buzzer** eines Teams. Wird nur über den QR-Code aus dem Regiepult geöffnet |
 
 Zum Proben vorher einfach durchspielen und danach unter **Reset → Punkte + Auslosung zurücksetzen** aufräumen: Spieler, Teamnamen und die Spieleliste bleiben erhalten.
@@ -67,6 +68,21 @@ Im Tab „Buzzer“ startet **„Probe starten“** eine Probefrage, die auf dem
 4. **Wertung:** Standard ist 1 Punkt für das nächste Team, bei gleichem Abstand für beide. Umschaltbar auf „Abgestuft 2 / 1“. Punkte lassen sich mit ± korrigieren; fällt ein Handy aus, trägst du die Schätzung von Hand ein.
 
 Die Schätzungen der anderen kann kein Handy lesen; auf den Beamer kommen sie erst beim Aufdecken.
+
+## Fragen sammeln
+
+`/#/sammeln` (Link unten im Regiepult) ist eine Sammlung fürs Handy, mit demselben Host-Login wie das Regiepult. Ideen liegen getrennt von den Fragen, die am Abend gespielt werden.
+
+1. Oben das Spiel wählen, mit **+** Ideen eintragen. Es gibt nur die Felder, die das Spiel braucht; Bilder, Bild-Hinweise und Songs kommen aus dem Medienordner wie im Editor.
+2. Jede Idee bewerten: **⭐ drin**, **🤔 vielleicht**, **🗑 raus**. Der Balken zeigt die ⭐ gegen das Ziel (Wer würde eher 25, Songs 35, Location 15, Allgemeinwissen 40, Schätzfragen 30; steht in `src/collect/ideas.ts`).
+3. **„⭐ ins Spiel übernehmen“** ersetzt die Fragenliste des Spiels durch die ⭐ in ihrer Reihenfolge. Danach stehen im Spiel nur die Sterne. Was im Regiepult-Editor nachträglich geändert wurde, überschreibt das nächste Übernehmen; Fragen deshalb in der Sammlung pflegen.
+4. Einmalig holt **„Fragen aus dem Spiel in die Sammlung holen“** bestehende Einträge als ⭐ in die Sammlung.
+
+„Mein Team kann“ hat keine Fragenliste im Regiepult; dort sind die ⭐ der Spickzettel für den Abend.
+
+**Fragen exportieren / importieren** (in der Sammlung und im Tab Reset) speichert Spiellisten und Sammlung als eigene Datei. Beim Import werden nur die Fragen der Spiele in der Datei ersetzt; Spielstand, Spieler und Teams bleiben. Eine komplette Sicherung lässt sich dort auch einspielen, dann werden nur ihre Fragen genommen.
+
+Die Sammlung braucht zwei neue Spalten: nach dem Update `supabase/schema.sql` einmal im SQL-Editor ausführen.
 
 ## Bilder und Songs
 

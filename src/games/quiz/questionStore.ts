@@ -1,3 +1,4 @@
+import type { IdeaStatus } from '../../collect/ideas'
 import { isSupabaseConfigured, supabase } from '../../lib/supabaseClient'
 
 /** Ein Hinweis zu einem Eintrag; bei Bildern ist value der Pfad im Medienordner (siehe common/media.ts) */
@@ -21,6 +22,9 @@ export interface Question {
   audioPath?: string | null
   /** Startstelle im Song in Sekunden */
   audioStart?: number
+  /** nur in der Sammlung: Bewertung und eigene Notiz */
+  status?: IdeaStatus
+  note?: string
 }
 
 /**
@@ -57,6 +61,8 @@ interface Row {
   hints?: Hint[] | null
   audio_path?: string | null
   audio_start?: number | null
+  status?: string | null
+  note?: string | null
 }
 
 const supabaseStore: QuestionStore = {
@@ -72,12 +78,16 @@ const supabaseStore: QuestionStore = {
       hints: r.hints ?? [],
       audioPath: r.audio_path ?? null,
       audioStart: r.audio_start ?? 0,
+      ...(r.status ? { status: r.status as IdeaStatus } : {}),
+      ...(r.note ? { note: r.note } : {}),
     }))
   },
 
   async save(gameId, questions) {
-    const withHints = questions.some((q) => q.hints.length > 0)
-    const withAudio = questions.some((q) => q.audioPath)
+    // Listen der Sammlung (siehe collect/ideas.ts) brauchen das neue Schema und schreiben deshalb alle Spalten, auch wenn sie wieder leer sind
+    const withIdea = gameId.startsWith('ideen:')
+    const withHints = withIdea || questions.some((q) => q.hints.length > 0)
+    const withAudio = withIdea || questions.some((q) => q.audioPath)
     const rows = questions.map((q, position) => ({
       id: q.id,
       game_id: gameId,
@@ -90,6 +100,7 @@ const supabaseStore: QuestionStore = {
       // diese Spalten gibt es erst nach dem Schema-Update; ohne Hinweise bzw. Songs bleibt das Speichern davon unabhängig
       ...(withHints ? { hints: q.hints } : {}),
       ...(withAudio ? { audio_path: q.audioPath ?? null, audio_start: q.audioStart ?? 0 } : {}),
+      ...(withIdea ? { status: q.status ?? '', note: q.note ?? '' } : {}),
     }))
     if (rows.length) {
       const { error } = await supabase!.from(TABLE).upsert(rows)
