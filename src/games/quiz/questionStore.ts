@@ -1,4 +1,5 @@
 import type { IdeaStatus } from '../../collect/ideas'
+import type { AnswerFormat } from '../estimate/logic'
 import { isSupabaseConfigured, supabase } from '../../lib/supabaseClient'
 
 /** Ein Hinweis zu einem Eintrag; bei Bildern ist value der Pfad im Medienordner (siehe common/media.ts) */
@@ -22,6 +23,8 @@ export interface Question {
   audioPath?: string | null
   /** Startstelle im Song in Sekunden */
   audioStart?: number
+  /** Schätzfragen: Format der Lösung; ohne Angabe eine Zahl */
+  format?: AnswerFormat
   /** nur in der Sammlung: Bewertung und eigene Notiz */
   status?: IdeaStatus
   note?: string
@@ -63,7 +66,12 @@ interface Row {
   audio_start?: number | null
   status?: string | null
   note?: string | null
+  format?: string | null
 }
+
+/** fehlende Spalten heißen fast immer: das Schema-Update wurde noch nicht eingespielt */
+const schemaError = (error: { message: string }) =>
+  /column|schema cache/i.test(error.message) ? new Error('Die Datenbank kennt die neuen Spalten noch nicht: supabase/schema.sql einmal im SQL-Editor ausführen.') : error
 
 const supabaseStore: QuestionStore = {
   async list(gameId) {
@@ -80,6 +88,7 @@ const supabaseStore: QuestionStore = {
       audioStart: r.audio_start ?? 0,
       ...(r.status ? { status: r.status as IdeaStatus } : {}),
       ...(r.note ? { note: r.note } : {}),
+      ...(r.format ? { format: r.format as AnswerFormat } : {}),
     }))
   },
 
@@ -88,6 +97,8 @@ const supabaseStore: QuestionStore = {
     const withIdea = gameId.startsWith('ideen:')
     const withHints = withIdea || questions.some((q) => q.hints.length > 0)
     const withAudio = withIdea || questions.some((q) => q.audioPath)
+    // gesetzt wird das Format nur bei Schätzfragen, dort auch „number“, damit ein Zurückstellen gespeichert wird
+    const withFormat = questions.some((q) => q.format !== undefined)
     const rows = questions.map((q, position) => ({
       id: q.id,
       game_id: gameId,
@@ -101,10 +112,11 @@ const supabaseStore: QuestionStore = {
       ...(withHints ? { hints: q.hints } : {}),
       ...(withAudio ? { audio_path: q.audioPath ?? null, audio_start: q.audioStart ?? 0 } : {}),
       ...(withIdea ? { status: q.status ?? '', note: q.note ?? '' } : {}),
+      ...(withFormat ? { format: q.format ?? '' } : {}),
     }))
     if (rows.length) {
       const { error } = await supabase!.from(TABLE).upsert(rows)
-      if (error) throw error
+      if (error) throw schemaError(error)
     }
     let del = supabase!.from(TABLE).delete().eq('game_id', gameId)
     if (rows.length) del = del.not('id', 'in', `(${rows.map((r) => r.id).join(',')})`)

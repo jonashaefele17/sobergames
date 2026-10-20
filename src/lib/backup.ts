@@ -1,5 +1,6 @@
 import { IDEA_GAMES, ideaKey, type IdeaStatus } from '../collect/ideas'
 import { GAMES, gameDef } from '../games/catalog'
+import type { AnswerFormat } from '../games/estimate/logic'
 import { newQuestion, questionStore, type Hint, type Question } from '../games/quiz/questionStore'
 import type { State } from '../store/types'
 import { normalize } from './actions'
@@ -85,6 +86,7 @@ export async function createQuestionExport(): Promise<QuestionExport> {
 }
 
 const STATUSES: IdeaStatus[] = ['star', 'maybe', 'out']
+const FORMATS: AnswerFormat[] = ['number', 'year', 'date']
 const text = (v: unknown) => (typeof v === 'string' ? v : typeof v === 'number' ? String(v) : '')
 
 /** Ein Eintrag aus einer fremden Datei: nur bekannte Felder, neue IDs */
@@ -105,6 +107,7 @@ function readEntry(raw: unknown, idea: boolean): Question | null {
     audioPath: typeof r.audioPath === 'string' ? r.audioPath : null,
     audioStart: typeof r.audioStart === 'number' && r.audioStart > 0 ? r.audioStart : 0,
   })
+  if (FORMATS.includes(r.format as AnswerFormat)) q.format = r.format as AnswerFormat
   if (idea) {
     if (STATUSES.includes(r.status as IdeaStatus)) q.status = r.status as IdeaStatus
     q.note = text(r.note)

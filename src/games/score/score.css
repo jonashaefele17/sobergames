@@ -232,7 +232,8 @@
 .term-text {
   font-size: calc(var(--u) * 3.4);
   line-height: 1.05;
-  overflow-wrap: anywhere;
+  hyphens: auto;
+  overflow-wrap: break-word;
 }
 
 /* ---------- Regiepult: Begriffe ---------- */

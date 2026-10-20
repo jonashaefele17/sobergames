@@ -5,7 +5,7 @@ import type { State } from '../store/types'
 import { clockOffset } from '../lib/clock'
 import { GAMES, gameKind, gameName } from './catalog'
 import { formatClock, formatStopwatch } from './common/time'
-import { adjustPoints, award, estimateData, estimateTotals, groupDigits, parseNumber, resetQuestion, revealGuess, revealSolution, setMode, setSubmitted } from './estimate/logic'
+import { adjustPoints, award, detectFormat, estimateData, estimateTotals, formatAnswer, formatDate, formatDistance, groupDigits, maskDate, maskYear, parseAnswer, parseDate, parseNumber, resetQuestion, revealGuess, revealSolution, setMode, setSubmitted } from './estimate/logic'
 import { addRound, hasEntries, reached, removeRound, scoreData, setShot, setShotCount, setTarget, teamShots, totals, undoRound } from './score/logic'
 import { difference, measureData, measureTotals, setItems, setWeight } from './measure/logic'
 import { awarded, awardTotals, toggleAward } from './prompt/logic'
@@ -280,5 +280,57 @@ describe('Schätzfragen', () => {
     s = resetQuestion(s) // nächste Frage: Punkte bleiben, Rest leer
     expect(estimateData(s)).toMatchObject({ submitted: [], guesses: {}, solution: null, mode: 'graded' })
     expect(estimateTotals(s)).toEqual({ [a]: 1, [b]: 2, [c]: 1 })
+  })
+})
+
+describe('Schätzfragen: Jahr und Datum', () => {
+  it('liest und zeigt ein Datum, auch vor 1970 und in den Jahren 0–99', () => {
+    expect(parseDate('01.01.1970')).toBe(0)
+    expect(formatDate(parseDate('9.11.1989')!)).toBe('09.11.1989')
+    expect(formatDate(parseDate('14.07.1789')!)).toBe('14.07.1789')
+    expect(formatDate(parseDate('01.03.0079')!)).toBe('01.03.0079')
+    expect(parseDate('29.02.2024')).not.toBeNull()
+    expect(parseDate('29.02.2023')).toBeNull()
+    expect(parseDate('31.04.2000')).toBeNull()
+    expect(parseDate('1989')).toBeNull()
+  })
+
+  it('Abstand bei Daten in Tagen, die Wertung bleibt dieselbe', () => {
+    const solution = parseDate('09.11.1989')!
+    const guesses = { a: parseDate('01.11.1989')!, b: parseDate('09.11.1990')!, c: parseDate('03.10.1990')! }
+    expect(guesses.a - solution).toBe(-8)
+    expect(award(guesses, solution, 'graded')).toEqual({ a: 2, c: 1 })
+    expect(formatDistance(8, 'date')).toBe('8 Tage')
+    expect(formatDistance(1, 'date')).toBe('1 Tag')
+    expect(formatDistance(-730, 'date')).toBe('730 Tage (≈ 2 Jahre)')
+    expect(formatDistance(365, 'date')).toBe('365 Tage (≈ 1 Jahr)')
+  })
+
+  it('Jahre ohne Tausenderpunkt, vor Christus mit Minus', () => {
+    expect(parseAnswer('1989', 'year')).toBe(1989)
+    expect(formatAnswer(1989, 'year')).toBe('1989')
+    expect(formatAnswer(1989, 'number')).toBe('1.989')
+    expect(formatAnswer(-44, 'year')).toBe('44 v. Chr.')
+    expect(parseAnswer('19,5', 'year')).toBeNull()
+    expect(formatDistance(1, 'year')).toBe('1 Jahr')
+    expect(formatDistance(-12, 'year')).toBe('12 Jahre')
+  })
+
+  it('Masken beim Tippen', () => {
+    expect(maskDate('09111989')).toBe('09.11.1989')
+    expect(maskDate('0911')).toBe('09.11')
+    expect(maskDate('9.')).toBe('09')
+    expect(maskDate('9.11.1989')).toBe('09.11.1989')
+    expect(maskDate('09.1')).toBe('09.1')
+    expect(maskDate('091119891234')).toBe('09.11.1989')
+    expect(maskYear('19a89')).toBe('1989')
+    expect(maskYear('-44')).toBe('-44')
+    expect(maskYear('123456')).toBe('1234')
+  })
+
+  it('erkennt eingefügte Daten', () => {
+    expect(detectFormat('09.11.1989')).toBe('date')
+    expect(detectFormat('1.250')).toBeUndefined()
+    expect(detectFormat('157')).toBeUndefined()
   })
 })

@@ -5,16 +5,18 @@ import '../../buzzer/buzzer.css'
 import { SPRING, teamStyle } from '../../lib/motion'
 import type { State, Team } from '../../store/types'
 import { answerStore } from './answerStore'
-import NumberInput from './NumberInput'
-import { estimateData, estimateTotals, formatNumber, parseNumber } from './logic'
+import AnswerInput from './AnswerInput'
+import { estimateData, estimateTotals, formatAnswer, formatDistance, parseAnswer, type AnswerFormat } from './logic'
+
+const ASKED: Record<AnswerFormat, string> = { number: '', year: 'Gesucht: eine Jahreszahl', date: 'Gesucht: ein Datum (Tag, Monat, Jahr)' }
 
 /** Eingabe einer Frage; wird je Frage neu angelegt, damit Feld und Abgabe leer beginnen. */
-function Entry({ token, open, unit }: { token: string; open: boolean; unit: string }) {
+function Entry({ token, open, unit, format }: { token: string; open: boolean; unit: string; format: AnswerFormat }) {
   const [text, setText] = useState('')
   const [sent, setSent] = useState<number | null>(null)
   const [busy, setBusy] = useState(false)
   const [failed, setFailed] = useState(false)
-  const value = parseNumber(text)
+  const value = parseAnswer(text, format)
 
   const submit = async () => {
     if (value === null) return
@@ -32,7 +34,7 @@ function Entry({ token, open, unit }: { token: string; open: boolean; unit: stri
     return (
       <div className="phone-state">
         <b>Eingabe geschlossen</b>
-        <span>{sent !== null ? `Eure Schätzung: ${formatNumber(sent)}${unit}` : 'Gleich wird aufgelöst'}</span>
+        <span>{sent !== null ? `Eure Schätzung: ${formatAnswer(sent, format)}${unit}` : 'Gleich wird aufgelöst'}</span>
       </div>
     )
   }
@@ -45,12 +47,13 @@ function Entry({ token, open, unit }: { token: string; open: boolean; unit: stri
       }}
     >
       <label htmlFor="estimate-input">Eure Schätzung</label>
-      <NumberInput id="estimate-input" placeholder="Zahl eingeben" value={text} onChange={setText} />
+      <AnswerInput id="estimate-input" format={format} value={text} onChange={setText} />
       {unit && <span className="unit">Gesucht in:{unit}</span>}
+      {ASKED[format] && <span className="unit">{ASKED[format]}</span>}
       <button type="submit" disabled={value === null || busy}>
         {sent === null ? 'Abschicken' : 'Ändern'}
       </button>
-      {sent !== null && <motion.p initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={SPRING} key={sent}>Abgegeben: {formatNumber(sent)}{unit}</motion.p>}
+      {sent !== null && <motion.p initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={SPRING} key={sent}>Abgegeben: {formatAnswer(sent, format)}{unit}</motion.p>}
       {failed && <p className="error">Nicht angekommen – nochmal versuchen</p>}
     </form>
   )
@@ -64,6 +67,7 @@ export default function EstimatePhone({ token, team, state, open }: { token: str
   const guess = data.guesses[team.id]
   // mit führendem Leerzeichen, damit sie direkt hinter eine Zahl passt
   const unit = quiz?.unit ? ` ${quiz.unit}` : ''
+  const format = quiz?.format ?? 'number'
   const ranking = [...state.teams].sort((a, b) => totals[b.id] - totals[a.id])
 
   return (
@@ -87,7 +91,7 @@ export default function EstimatePhone({ token, team, state, open }: { token: str
         ) : data.solution !== null ? (
           <div className="phone-state">
             <b>
-              {formatNumber(data.solution)}
+              {formatAnswer(data.solution, format)}
               {unit}
             </b>
             <span>
@@ -95,11 +99,11 @@ export default function EstimatePhone({ token, team, state, open }: { token: str
                 ? 'Lösung'
                 : guess === data.solution
                   ? 'Volltreffer!'
-                  : `Ihr lagt mit ${formatNumber(guess)} um ${formatNumber(Math.abs(guess - data.solution))} daneben`}
+                  : `Ihr lagt mit ${formatAnswer(guess, format)} um ${formatDistance(guess - data.solution, format)} daneben`}
             </span>
           </div>
         ) : (
-          <Entry key={quiz.index} token={token} open={open} unit={unit} />
+          <Entry key={quiz.index} token={token} open={open} unit={unit} format={format} />
         )}
       </main>
       <footer className="phone-foot">{quiz ? `Frage ${quiz.index + 1}` : ''}</footer>

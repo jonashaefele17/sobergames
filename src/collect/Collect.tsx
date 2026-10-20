@@ -10,8 +10,8 @@ import { gameDef } from '../games/catalog'
 import { mediaUrl } from '../games/common/media'
 import { MediaPicker, Thumb } from '../games/quiz/QuizEditor'
 import { newQuestion, questionStore, type Hint, type Question } from '../games/quiz/questionStore'
-import { parseNumber } from '../games/estimate/logic'
-import NumberInput from '../games/estimate/NumberInput'
+import { ANSWER_FORMATS, detectFormat, formatAnswer, parseAnswer, type AnswerFormat } from '../games/estimate/logic'
+import AnswerInput from '../games/estimate/AnswerInput'
 import { parseQuestions } from '../games/quiz/parse'
 import { countStatus, gameToIdeas, hasGameList, IDEA_GAMES, ideaKey, ideaProblems, ideaTitle, starredToGame, type IdeaStatus } from './ideas'
 import PrintTerms from './PrintTerms'
@@ -38,6 +38,15 @@ const FILTERS: [Filter, string][] = [
 ]
 
 const matches = (filter: Filter) => (q: Question) => filter === 'all' || (q.status ?? 'open') === filter
+
+const ANSWER_LABEL: Record<AnswerFormat, string> = { number: 'Lösung als Zahl', year: 'Lösung als Jahr', date: 'Lösung als Datum' }
+
+/** Lösung einer Schätzfrage so, wie sie am Abend erscheint; ungültige bleiben als Text stehen */
+function numericAnswer(q: Question): string {
+  const value = parseAnswer(q.answer, q.format)
+  if (value === null) return q.answer || '–'
+  return `${formatAnswer(value, q.format)}${(q.format ?? 'number') === 'number' && q.info ? ` ${q.info}` : ''}`
+}
 
 const itemLabel = (gameId: string) => IDEA_GAMES.find((g) => g.id === gameId)?.label ?? gameDef(gameId).quiz?.itemLabel ?? 'Frage'
 
@@ -84,10 +93,7 @@ function IdeaCard({
       {open && (
         <div className="idea-details">
           {showAnswer && (
-            <p className="idea-answer">
-              {q.answer || '–'}
-              {quiz.numeric && q.info && ` ${q.info}`}
-            </p>
+            <p className="idea-answer">{quiz.numeric ? numericAnswer(q) : q.answer || '–'}</p>
           )}
           {q.info && !quiz?.numeric && <p className="hint">{q.info}</p>}
           {q.imagePath && <Thumb path={q.imagePath} />}
@@ -138,6 +144,7 @@ function QuickAdd({ gameId, onAdd }: { gameId: string; onAdd: (qs: Question[]) =
   const [main, setMain] = useState('')
   const [answer, setAnswer] = useState('')
   const [info, setInfo] = useState('')
+  const [format, setFormat] = useState<AnswerFormat>('number')
   const [star, setStar] = useState(false)
   const [added, setAdded] = useState<Question[]>([])
   const mainRef = useRef<HTMLInputElement>(null)
@@ -154,17 +161,26 @@ function QuickAdd({ gameId, onAdd }: { gameId: string; onAdd: (qs: Question[]) =
   }
 
   const extra = { note: '', ...(star ? { status: 'star' as const } : {}) }
+  const withUnit = !numeric || format === 'number'
   const submit = (e: FormEvent) => {
     e.preventDefault()
     if (!main.trim()) return
-    add([newQuestion({ ...(answerOnly ? { answer: main.trim() } : { question: main.trim(), answer: answer.trim() }), info: info.trim(), ...extra })])
+    add([
+      newQuestion({
+        ...(answerOnly ? { answer: main.trim() } : { question: main.trim(), answer: answer.trim() }),
+        info: withUnit ? info.trim() : '',
+        ...(numeric ? { format } : {}),
+        ...extra,
+      }),
+    ])
   }
 
   const paste = (e: ClipboardEvent<HTMLInputElement>) => {
     const text = e.clipboardData.getData('text')
     if (!text.trim().includes('\n')) return
     e.preventDefault()
-    add(parseQuestions(text, answerOnly).map((p) => newQuestion({ ...p, ...extra })))
+    // bei Schätzfragen erkennt eine Lösung wie „09.11.1989“ das Datum von selbst
+    add(parseQuestions(text, answerOnly).map((p) => newQuestion({ ...p, ...(numeric ? { format: detectFormat(p.answer) ?? 'number' } : {}), ...extra })))
   }
 
   return (
@@ -179,13 +195,22 @@ function QuickAdd({ gameId, onAdd }: { gameId: string; onAdd: (qs: Question[]) =
           onChange={(e) => setMain(e.target.value)}
           onPaste={paste}
         />
+        {numeric && (
+          <select value={format} aria-label="Format der Lösung" onChange={(e) => setFormat(e.target.value as AnswerFormat)}>
+            {ANSWER_FORMATS.map(([key, text]) => (
+              <option key={key} value={key}>
+                {text}
+              </option>
+            ))}
+          </select>
+        )}
         {withAnswer &&
           (numeric ? (
-            <NumberInput className="mid" value={answer} placeholder="Zahl" aria-label="Lösung als Zahl" onChange={setAnswer} />
+            <AnswerInput className="mid" format={format} value={answer} placeholder={format === 'number' ? 'Zahl' : undefined} aria-label="Lösung" onChange={setAnswer} />
           ) : (
             <input className="quick-answer" value={answer} placeholder="Antwort" aria-label="Antwort" onChange={(e) => setAnswer(e.target.value)} />
           ))}
-        {(numeric || (withAnswer && !numeric)) && (
+        {withAnswer && withUnit && (
           <input
             className={numeric ? 'short' : 'quick-info'}
             value={info}
@@ -208,7 +233,7 @@ function QuickAdd({ gameId, onAdd }: { gameId: string; onAdd: (qs: Question[]) =
             <li key={q.id}>
               {q.status === 'star' && '⭐ '}
               {ideaTitle(q)}
-              {withAnswer && q.answer && <small> · {q.answer}</small>}
+              {withAnswer && q.answer && <small> · {numeric ? numericAnswer(q) : q.answer}</small>}
             </li>
           ))}
         </ul>
@@ -279,14 +304,27 @@ function IdeaSheet({
           <textarea autoFocus={isNew} rows={3} value={q.question} onChange={(e) => update({ question: e.target.value })} />
         )}
       </label>
+      {quiz?.numeric && (
+        <div className="field">
+          <span>Gesucht ist</span>
+          <div className="seg">
+            {ANSWER_FORMATS.map(([key, text]) => (
+              <button key={key} className={(q.format ?? 'number') === key ? 'on' : ''} onClick={() => update({ format: key })}>
+                {text}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       {withAnswer && (
         <label className="field">
-          <span>{quiz?.numeric ? 'Lösung als Zahl' : 'Antwort'}</span>
+          <span>{quiz?.numeric ? ANSWER_LABEL[q.format ?? 'number'] : 'Antwort'}</span>
           {quiz?.numeric ? (
-            <NumberInput
-              className={q.answer && parseNumber(q.answer) === null ? 'invalid' : ''}
+            <AnswerInput
+              className={q.answer && parseAnswer(q.answer, q.format) === null ? 'invalid' : ''}
+              format={q.format}
               value={q.answer}
-              placeholder="z. B. 1.250 oder 3,5"
+              placeholder={(q.format ?? 'number') === 'number' ? 'z. B. 1.250 oder 3,5' : undefined}
               onChange={(answer) => update({ answer })}
             />
           ) : (
@@ -294,7 +332,7 @@ function IdeaSheet({
           )}
         </label>
       )}
-      {withInfo && (
+      {withInfo && (!quiz?.numeric || (q.format ?? 'number') === 'number') && (
         <label className="field">
           <span>{quiz?.numeric ? 'Einheit (für alle sichtbar)' : 'Zusatzinfo (optional)'}</span>
           <input value={q.info} placeholder={quiz?.numeric ? 'z. B. Meter' : ''} onChange={(e) => update({ info: e.target.value })} />
@@ -414,7 +452,8 @@ function CollectPage({ local }: { local: boolean }) {
   const [reload, setReload] = useState(0)
   const [gameId, setGameId] = useState(IDEA_GAMES[0].id)
   const [filter, setFilter] = useState<Filter>('all')
-  const [opened, setOpened] = useState<Set<string>>(new Set())
+  /** zugeklappte Karten; alle anderen zeigen Antwort, Hinweise und Notiz */
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
   const [editing, setEditing] = useState<{ draft: Question; isNew: boolean } | null>(null)
   const [save, setSave] = useState<SaveState>('idle')
   const [error, setError] = useState<string | null>(null)
@@ -487,7 +526,7 @@ function CollectPage({ local }: { local: boolean }) {
     })
 
   const toggle = (id: string) =>
-    setOpened((s) => {
+    setCollapsed((s) => {
       const next = new Set(s)
       if (!next.delete(id)) next.add(id)
       return next
@@ -610,7 +649,7 @@ function CollectPage({ local }: { local: boolean }) {
             gameId={gameId}
             q={q}
             index={list.indexOf(q)}
-            open={opened.has(q.id)}
+            open={!collapsed.has(q.id)}
             first={i === 0}
             last={i === visible.length - 1}
             onToggle={() => toggle(q.id)}

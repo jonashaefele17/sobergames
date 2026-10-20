@@ -11,8 +11,8 @@ import { HostTimer } from '../common/HostTimer'
 import { mediaUrl } from '../common/media'
 import { questionStore, type Question } from '../quiz/questionStore'
 import { answerStore } from './answerStore'
-import NumberInput from './NumberInput'
-import { adjustPoints, estimateData, estimateTotals, formatNumber, parseNumber, resetQuestion, revealGuess, revealSolution, setMode, setSubmitted } from './logic'
+import AnswerInput from './AnswerInput'
+import { adjustPoints, estimateData, estimateTotals, formatAnswer, formatDistance, parseAnswer, resetQuestion, revealGuess, revealSolution, setMode, setSubmitted } from './logic'
 
 const run = (fn: (s: State) => State) => gameStore.update(fn)
 
@@ -69,7 +69,8 @@ export default function EstimateHost({ state, game }: { state: State; game: Game
   const index = quiz?.index ?? -1
   const current = questions?.[index]
   const upcoming = questions?.[index + 1]
-  const solution = current ? parseNumber(current.answer) : null
+  const format = current?.format ?? 'number'
+  const solution = current ? parseAnswer(current.answer, format) : null
   const solved = data.solution !== null
   const totals = estimateTotals(state)
   const teamAnswers = Object.fromEntries(state.teams.filter((t) => answers[t.id] !== undefined).map((t) => [t.id, answers[t.id]]))
@@ -80,14 +81,14 @@ export default function EstimateHost({ state, game }: { state: State; game: Game
     if (!q) return
     setManual({})
     void answerStore.clear().catch(() => setError('Alte Schätzungen konnten nicht gelöscht werden'))
-    run((s) => resetQuestion(act.showQuestion({ index: i, total: questions!.length, text: q.question, imageUrl: mediaUrl(q.imagePath), unit: q.info.trim() || undefined })(s)))
+    run((s) => resetQuestion(act.showQuestion({ index: i, total: questions!.length, text: q.question, imageUrl: mediaUrl(q.imagePath), unit: (q.format ?? 'number') === 'number' ? q.info.trim() || undefined : undefined, format: q.format && q.format !== 'number' ? q.format : undefined })(s)))
     buzzerStore.arm(true)
   }
 
   const solve = () => {
     if (solution === null || !current) return
     buzzerStore.arm(false)
-    run((s) => act.revealAnswer(formatNumber(solution), null)(revealSolution(index, solution, teamAnswers)(s)))
+    run((s) => act.revealAnswer(formatAnswer(solution, format), null)(revealSolution(index, solution, teamAnswers)(s)))
   }
 
   const end = () => {
@@ -119,9 +120,9 @@ export default function EstimateHost({ state, game }: { state: State; game: Game
             <>
               <div className="q-text">{current.question}</div>
               <div className="q-answer">
-                <small>Lösung</small> {solution !== null ? formatNumber(solution) : `„${current.answer}“ ist keine Zahl`}
+                <small>Lösung</small> {solution !== null ? formatAnswer(solution, format) : `„${current.answer}“ ist kein gültiges ${format === 'date' ? 'Datum' : format === 'year' ? 'Jahr' : 'Zahl'}`}
               </div>
-              {current.info && <div className="hint">{current.info}</div>}
+              {format === 'number' && current.info && <div className="hint">{current.info}</div>}
             </>
           ) : (
             <div className="q-text idle">Noch keine Frage gezeigt</div>
@@ -141,11 +142,11 @@ export default function EstimateHost({ state, game }: { state: State; game: Game
                 <span className="grow">{t.name}</span>
                 {has && (
                   <b className="guess">
-                    {formatNumber(answers[t.id])}
+                    {formatAnswer(answers[t.id], format)}
                     {solution !== null && answers[t.id] !== solution && (
                       <small>
                         {answers[t.id] > solution ? '+' : '−'}
-                        {formatNumber(Math.abs(answers[t.id] - solution))}
+                        {formatDistance(answers[t.id] - solution, format)}
                       </small>
                     )}
                   </b>
@@ -187,11 +188,11 @@ export default function EstimateHost({ state, game }: { state: State; game: Game
                 <div key={t.id} className="row tight value-row" style={teamStyle(t.color)}>
                   <span className="dot" />
                   <span className="grow">{t.name}</span>
-                  <NumberInput placeholder="Zahl" value={manual[t.id] ?? ''} onChange={(text) => setManual((m) => ({ ...m, [t.id]: text }))} />
+                  <AnswerInput format={format} value={manual[t.id] ?? ''} onChange={(text) => setManual((m) => ({ ...m, [t.id]: text }))} />
                   <button
-                    disabled={parseNumber(manual[t.id] ?? '') === null}
+                    disabled={parseAnswer(manual[t.id] ?? '', format) === null}
                     onClick={() => {
-                      void answerStore.set(t.id, parseNumber(manual[t.id])!)
+                      void answerStore.set(t.id, parseAnswer(manual[t.id], format)!)
                       setManual((m) => ({ ...m, [t.id]: '' }))
                     }}
                   >

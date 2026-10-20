@@ -1,5 +1,6 @@
 import { gameDef } from '../games/catalog'
 import { newQuestion, type Question } from '../games/quiz/questionStore'
+import { parseAnswer } from '../games/estimate/logic'
 import { TERMS_PER_ROUND } from '../games/score/terms'
 
 /** Bewertung einer Idee; leer heißt noch offen */
@@ -44,6 +45,7 @@ export function ideaProblems(gameId: string, q: Question): string[] {
   if (quiz?.audio && !q.audioPath) problems.push('kein Song gewählt')
   if (quiz?.hints && q.hints.length === 0) problems.push('keine Hinweise')
   if (quiz && !quiz.noAnswer && !quiz.answerOnly && !q.answer.trim()) problems.push('keine Antwort')
+  else if (quiz?.numeric && parseAnswer(q.answer, q.format) === null) problems.push(q.format === 'date' ? 'Datum ungültig' : q.format === 'year' ? 'Jahr ungültig' : 'Lösung ist keine Zahl')
   return problems
 }
 
@@ -57,6 +59,7 @@ export const copyEntry = (q: Question, patch: Partial<Question> = {}): Question 
     hints: q.hints.map((h) => ({ ...h, id: crypto.randomUUID() })),
     audioPath: q.audioPath ?? null,
     audioStart: q.audioStart ?? 0,
+    ...(q.format ? { format: q.format } : {}),
     ...patch,
   })
 

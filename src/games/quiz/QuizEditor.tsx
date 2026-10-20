@@ -6,8 +6,8 @@ import { gameDef } from '../catalog'
 import { mediaFiles, mediaFolder, mediaUrl } from '../common/media'
 import { parseQuestions } from './parse'
 import { newQuestion, questionStore, type Hint, type Question } from './questionStore'
-import { parseNumber } from '../estimate/logic'
-import NumberInput from '../estimate/NumberInput'
+import { ANSWER_FORMATS, detectFormat, parseAnswer } from '../estimate/logic'
+import AnswerInput from '../estimate/AnswerInput'
 import { SAMPLE_ESTIMATES, SAMPLE_PROMPTS, SAMPLE_QUESTIONS } from './samples'
 
 const pad = (n: number) => String(n).padStart(2, '0')
@@ -177,7 +177,7 @@ export default function QuizEditor({ gameId, onClose }: { gameId: string; onClos
   }
 
   const importList = (replace: boolean) => {
-    const parsed = parseQuestions(paste, answerOnly).map((p) => newQuestion(p))
+    const parsed = parseQuestions(paste, answerOnly).map((p) => newQuestion({ ...p, ...(numeric && detectFormat(p.answer) ? { format: detectFormat(p.answer) } : {}) }))
     if (!parsed.length) return
     if (replace && questions?.length && !confirm(`Alle ${questions.length} Einträge durch ${parsed.length} neue ersetzen?`)) return
     change((qs) => (replace ? parsed : [...qs, ...parsed]))
@@ -264,18 +264,28 @@ export default function QuizEditor({ gameId, onClose }: { gameId: string; onClos
             <div className="row tight">
               <span className="num" />
               {numeric ? (
-                <NumberInput
-                  className={`grow${q.answer && parseNumber(q.answer) === null ? ' invalid' : ''}`}
-                  value={q.answer}
-                  placeholder="Lösung als Zahl, z. B. 1.250 oder 3,5"
-                  onChange={(answer) => update(q.id, { answer })}
-                />
+                <>
+                  <select value={q.format ?? 'number'} aria-label="Format der Lösung" onChange={(e) => update(q.id, { format: e.target.value as Question['format'] })}>
+                    {ANSWER_FORMATS.map(([key, text]) => (
+                      <option key={key} value={key}>
+                        {text}
+                      </option>
+                    ))}
+                  </select>
+                  <AnswerInput
+                    className={`grow${q.answer && parseAnswer(q.answer, q.format) === null ? ' invalid' : ''}`}
+                    format={q.format}
+                    value={q.answer}
+                    placeholder={(q.format ?? 'number') === 'number' ? 'Lösung als Zahl, z. B. 1.250 oder 3,5' : undefined}
+                    onChange={(answer) => update(q.id, { answer })}
+                  />
+                </>
               ) : (
                 <input className="grow" value={q.answer} placeholder="Antwort" onChange={(e) => update(q.id, { answer: e.target.value })} />
               )}
             </div>
           )}
-          {!noAnswer && (
+          {!noAnswer && (!numeric || (q.format ?? 'number') === 'number') && (
             <div className="row tight">
               <span className="num" />
               <input className="grow" value={q.info} placeholder={numeric ? 'Einheit, z. B. Meter (für alle sichtbar)' : 'Zusatzinfo (optional)'} onChange={(e) => update(q.id, { info: e.target.value })} />

@@ -1,3 +1,5 @@
+import type { AnswerFormat } from '../games/estimate/logic'
+
 export type Scene = 'intro' | 'wheel' | 'teams' | 'games' | 'scoreboard' | 'winner' | 'play'
 
 export interface Player {
@@ -57,6 +59,8 @@ export interface QuizView {
   hintFocus?: number
   /** Einheit der gesuchten Zahl bei Schätzfragen, von Anfang an sichtbar */
   unit?: string
+  /** Schätzfragen: gesucht ist eine Zahl (Standard), ein Jahr oder ein Datum */
+  format?: AnswerFormat
   /** Song zum Eintrag und der letzte Abspiel-Auslöser */
   audio?: AudioCue
   answer: string | null

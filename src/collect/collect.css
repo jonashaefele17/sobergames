@@ -257,66 +257,143 @@
   color: var(--white);
 }
 
+/* Lösungsblatt: weißes Papier im Sobergames-Look; das Gold ist für den Druck etwas dunkler */
 .print-page {
-  max-width: 210mm;
+  --ink: #111a35;
+  --print-gold: #b8860b;
+  max-width: 297mm;
   margin: 0 auto 16px;
-  padding: 12mm;
-  aspect-ratio: 210 / 297;
+  padding: 10mm 12mm 8mm;
+  aspect-ratio: 297 / 210;
   display: flex;
   flex-direction: column;
-  gap: 6mm;
+  gap: 5mm;
   background: #fff;
+  color: var(--ink);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
 }
 
-.print-page h1 {
+.print-head {
+  display: flex;
+  align-items: center;
+  gap: 4mm;
+  padding-bottom: 3mm;
+  border-bottom: 0.8mm solid var(--print-gold);
+}
+
+.print-head svg {
+  height: 13mm;
+  width: auto;
+  fill: var(--print-gold);
+}
+
+.print-head svg path {
+  fill: var(--print-gold);
+}
+
+.print-head h1 {
   margin: 0;
-  font-family: var(--text);
-  font-size: 18pt;
-  font-weight: 700;
-  letter-spacing: 0;
-  color: #111;
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 30pt;
+  line-height: 0.95;
+  letter-spacing: 0.04em;
+  color: var(--ink);
 }
 
-.print-page h1 small {
+.print-kicker {
+  font-family: var(--display);
   font-size: 11pt;
+  letter-spacing: 0.24em;
+  color: var(--print-gold);
+}
+
+.print-round {
+  display: flex;
+  align-items: baseline;
+  gap: 2mm;
+  font-family: var(--display);
+  color: var(--ink);
+}
+
+.print-round small {
+  font-size: 14pt;
+  letter-spacing: 0.18em;
+}
+
+.print-round b {
   font-weight: 400;
-  color: #555;
+  font-size: 40pt;
+  line-height: 0.9;
+  color: var(--print-gold);
 }
 
 .print-grid {
   flex: 1;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  grid-template-rows: repeat(4, minmax(0, 1fr));
-  gap: 3mm;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-rows: repeat(3, minmax(0, 1fr));
+  gap: 3.5mm;
 }
 
 .print-cell {
   position: relative;
   display: grid;
   place-items: center;
-  padding: 4mm;
-  border: 0.4mm solid #333;
-  border-radius: 2mm;
+  padding: 9mm 4mm 4mm;
+  border: 0.5mm solid var(--ink);
+  border-radius: 3mm;
   text-align: center;
 }
 
 .print-cell b {
   position: absolute;
-  top: 2mm;
-  left: 3mm;
-  font-size: 12pt;
+  top: 2.5mm;
+  left: 2.5mm;
+  display: grid;
+  place-items: center;
+  width: 8mm;
+  height: 8mm;
+  border-radius: 50%;
+  background: var(--ink);
+  color: #fff;
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 13pt;
+  line-height: 1;
 }
 
 .print-cell span {
-  font-size: 16pt;
-  font-weight: 600;
-  overflow-wrap: anywhere;
+  font-family: var(--display);
+  font-size: 22pt;
+  line-height: 1.05;
+  letter-spacing: 0.03em;
+  hyphens: auto;
+  overflow-wrap: break-word;
+}
+
+.print-cell.empty {
+  border-style: dashed;
+  border-color: #b0b5c4;
+}
+
+.print-cell.empty b {
+  background: #b0b5c4;
+}
+
+.print-foot {
+  display: flex;
+  justify-content: space-between;
+  font-size: 8pt;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #8a90a3;
 }
 
 @page {
-  size: A4 portrait;
+  size: A4 landscape;
   margin: 0;
 }
 
@@ -348,8 +425,8 @@
   }
 
   .print-page {
-    width: 210mm;
-    height: 297mm;
+    width: 297mm;
+    height: 210mm;
     max-width: none;
     margin: 0;
     aspect-ratio: auto;

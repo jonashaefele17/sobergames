@@ -107,10 +107,16 @@ describe('Fragen-Datei', () => {
   })
 
   it('nimmt von einer kompletten Sicherung nur die Fragen', () => {
-    const backup = { version: 1, createdAt: '', state: { players: [{ id: 'p', name: 'Jonas' }] }, content: { schaetzfragen: [{ question: 'Wie hoch?', answer: '157', info: 'm' }] } }
+    const backup = {
+      version: 1,
+      createdAt: '',
+      state: { players: [{ id: 'p', name: 'Jonas' }] },
+      content: { schaetzfragen: [{ question: 'Wie hoch?', answer: '157', info: 'm' }, { question: 'Mauerfall?', answer: '09.11.1989', format: 'date' }, { question: 'X', answer: '1', format: 'quatsch' }] },
+    }
     const read = parseQuestionExport(JSON.stringify(backup))
     expect(read).not.toHaveProperty('state')
     expect(read.content.schaetzfragen[0]).toMatchObject({ question: 'Wie hoch?', answer: '157', info: 'm' })
+    expect(read.content.schaetzfragen.map((q) => q.format)).toEqual([undefined, 'date', undefined])
     expect(read.ideas).toEqual({})
   })
 

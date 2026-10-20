@@ -62,7 +62,7 @@ Im Tab „Buzzer“ startet **„Probe starten“** eine Probefrage, die auf dem
 
 ### Schätzfragen
 
-1. **Fragen pflegen:** Setup → „Fragen bearbeiten“, eine Zeile pro Frage: `Frage | Lösung als Zahl | Einheit` (z. B. Meter). Die Einheit sehen alle von Anfang an, auf dem Beamer und am Handy; Lösungshinweise gehören dort nicht hinein.
+1. **Fragen pflegen:** Setup → „Fragen bearbeiten“, eine Zeile pro Frage: `Frage | Lösung als Zahl | Einheit` (z. B. Meter). Die Einheit sehen alle von Anfang an, auf dem Beamer und am Handy; Lösungshinweise gehören dort nicht hinein. Je Frage lässt sich das Format umstellen: **Zahl**, **Jahr** (ohne Tausenderpunkt, v. Chr. mit Minus) oder **Datum** (TT.MM.JJJJ, gewertet nach Abstand in Tagen). Am Handy tippen die Teams dann eine Jahreszahl bzw. ein Datum mit Zifferntastatur; eingefügte Lösungen wie `09.11.1989` werden automatisch als Datum erkannt. Das Format braucht das Schema-Update (`supabase/schema.sql` erneut ausführen).
 2. **Frage zeigen:** Die Teams tippen ihre Schätzung auf ihrem Handy ein (dieselbe Seite wie der Buzzer) (mit Tausenderpunkten beim Tippen) und können sie ändern, bis du **„Eingabe schließen“** drückst. Im Regiepult siehst du jede abgegebene Zahl sofort (mit Abweichung zur Lösung) und kannst so die Reihenfolge fürs Aufdecken wählen.
 3. **Aufdecken:** Je Team einzeln in beliebiger Reihenfolge oder „Alle aufdecken“, danach **„Lösung aufdecken“**.
 4. **Wertung:** Standard ist 1 Punkt für das nächste Team, bei gleichem Abstand für beide. Umschaltbar auf „Abgestuft 2 / 1“. Punkte lassen sich mit ± korrigieren; fällt ein Handy aus, trägst du die Schätzung von Hand ein.
@@ -80,7 +80,7 @@ Die Schätzungen der anderen kann kein Handy lesen; auf den Beamer kommen sie er
 
 „Mein Team kann“ hat keine Fragenliste im Regiepult; dort sind die ⭐ der Spickzettel für den Abend.
 
-**Scribble Rush** (Ziel 48 Begriffe = 4 Runden): Die Reihenfolge der ⭐ ergibt die Runden, 1–12 ist Runde 1, 13–24 Runde 2 usw.; mit dem Filter ⭐ stehen die Runden als Zwischenüberschriften in der Liste. Nach dem Übernehmen druckt **„Drucken / PDF“** je Runde eine A4-Seite mit den 12 nummerierten Kästchen und ihren Begriffen (im Druckdialog „Als PDF speichern“ wählen).
+**Scribble Rush** (Ziel 48 Begriffe = 4 Runden): Die Reihenfolge der ⭐ ergibt die Runden, 1–12 ist Runde 1, 13–24 Runde 2 usw.; mit dem Filter ⭐ stehen die Runden als Zwischenüberschriften in der Liste. Nach dem Übernehmen druckt **„Drucken / PDF“** je Runde eine A4-Seite im Querformat mit den 12 nummerierten Kästchen und ihren Begriffen (im Druckdialog „Als PDF speichern“ wählen).
 
 Am Abend steht im Tab „Spiel“ über der Punktevergabe **„Begriffe Runde 1“**: Du siehst alle 12 Begriffe, „Auflösung auf den Beamer“ zeigt das leere Raster, „Begriff 1 aufdecken“ füllt Kästchen für Kästchen. Auf den Beamer kommen nur die aufgedeckten Begriffe. Danach wie gewohnt die Punkte je Team eintragen und „Runde buchen“: Der Beamer zeigt wieder die Tafel, und die nächste Runde ist dran.
 

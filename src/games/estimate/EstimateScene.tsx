@@ -7,7 +7,7 @@ import type { Game, State } from '../../store/types'
 import { gameName } from '../catalog'
 import { RoundBar } from '../common/RoundBar'
 import { TitleCard } from '../common/TitleCard'
-import { estimateData, estimateTotals, formatNumber } from './logic'
+import { estimateData, estimateTotals, formatAnswer, formatDistance } from './logic'
 
 /** Schätzfrage auf dem Beamer: Frage, je Team eine Karte, die einzeln aufgedeckt wird, dann die Lösung. */
 export default function EstimateScene({ state, game }: { state: State; game: Game }) {
@@ -15,6 +15,7 @@ export default function EstimateScene({ state, game }: { state: State; game: Gam
   const data = estimateData(state)
   const solved = data.solution !== null
   const points = quiz ? (data.points[quiz.index] ?? {}) : {}
+  const format = quiz?.format ?? 'number'
 
   return (
     <div className="scene">
@@ -37,11 +38,12 @@ export default function EstimateScene({ state, game }: { state: State; game: Gam
                 <div className="est-question">
                   <div className={`question${quiz.text.length > 110 ? ' long' : ''}`}>{quiz.text}</div>
                   {quiz.unit && !solved && <div className="est-unit">Gesucht in: {quiz.unit}</div>}
+                  {format !== 'number' && !solved && <div className="est-unit">Gesucht: {format === 'date' ? 'ein Datum' : 'eine Jahreszahl'}</div>}
                   <AnimatePresence>
                     {solved && (
                       <motion.div className="est-solution" initial={{ opacity: 0, scale: 0.7 }} animate={{ opacity: 1, scale: 1 }} transition={SPRING}>
                         <span className="answer-label">Lösung</span>
-                        <span className="answer-text gold-text">{formatNumber(data.solution!)}</span>
+                        <span className="answer-text gold-text">{formatAnswer(data.solution!, format)}</span>
                         {quiz.unit && <span className="answer-info">{quiz.unit}</span>}
                       </motion.div>
                     )}
@@ -66,7 +68,7 @@ export default function EstimateScene({ state, game }: { state: State; game: Gam
                             animate={{ rotateX: 0, opacity: 1 }}
                             transition={{ type: 'spring', stiffness: 160, damping: 16 }}
                           >
-                            {formatNumber(guess)}
+                            {formatAnswer(guess, format)}
                           </motion.div>
                         ) : (
                           <motion.div key={submitted ? 'in' : 'wait'} className={`est-wait${submitted ? ' in' : ''}`} initial={{ opacity: 0, scale: 0.6 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} transition={SPRING}>
@@ -77,7 +79,7 @@ export default function EstimateScene({ state, game }: { state: State; game: Gam
                       <AnimatePresence>
                         {solved && shown && (
                           <motion.div className="est-diff" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-                            {guess === data.solution ? 'Volltreffer' : `${guess > data.solution! ? '+' : '−'}${formatNumber(Math.abs(guess - data.solution!))}`}
+                            {guess === data.solution ? 'Volltreffer' : `${guess > data.solution! ? '+' : '−'}${formatDistance(guess - data.solution!, format)}`}
                             {won && <b> · +{points[t.id]}</b>}
                           </motion.div>
                         )}
