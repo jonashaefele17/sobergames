@@ -73,7 +73,7 @@ Die Schätzungen der anderen kann kein Handy lesen; auf den Beamer kommen sie er
 
 `/#/sammeln` (Link unten im Regiepult) ist eine Sammlung fürs Handy, mit demselben Host-Login wie das Regiepult. Ideen liegen getrennt von den Fragen, die am Abend gespielt werden.
 
-1. Oben das Spiel wählen, mit **+** Ideen eintragen. Es gibt nur die Felder, die das Spiel braucht; Bilder, Bild-Hinweise und Songs kommen aus dem Medienordner wie im Editor.
+1. Oben das Spiel wählen, mit **+** Ideen eintragen. Es gibt nur die Felder, die das Spiel braucht; Bilder, Bild-Hinweise und Songs kommen aus dem Medienordner wie im Editor. Am PC gibt es zusätzlich die **Schnelleingabe** über der Liste: tippen, Enter, nächster. Mehrere eingefügte Zeilen werden zu je einem Eintrag (Spalten mit Tab oder `|`), ⭐ daneben bewertet die neuen gleich mit.
 2. Jede Idee bewerten: **⭐ drin**, **🤔 vielleicht**, **🗑 raus**. Der Balken zeigt die ⭐ gegen das Ziel (Wer würde eher 25, Songs 35, Location 15, Allgemeinwissen 40, Schätzfragen 30; steht in `src/collect/ideas.ts`).
 3. **„⭐ ins Spiel übernehmen“** ersetzt die Fragenliste des Spiels durch die ⭐ in ihrer Reihenfolge. Danach stehen im Spiel nur die Sterne. Was im Regiepult-Editor nachträglich geändert wurde, überschreibt das nächste Übernehmen; Fragen deshalb in der Sammlung pflegen.
 4. Einmalig holt **„Fragen aus dem Spiel in die Sammlung holen“** bestehende Einträge als ⭐ in die Sammlung.

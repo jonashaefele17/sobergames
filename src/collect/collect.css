@@ -361,3 +361,48 @@
     break-after: auto;
   }
 }
+
+/* ---------- Schnelleingabe (nur breite Bildschirme) ---------- */
+
+.host .quick-add {
+  display: none;
+  border-color: rgba(var(--gold-rgb), 0.4);
+}
+
+.host .quick-add .quick-answer {
+  width: 180px;
+}
+
+.host .quick-add .quick-info {
+  width: 150px;
+}
+
+.host .quick-add .idea-status {
+  min-width: 44px;
+  font-size: 18px;
+}
+
+.quick-added {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 14px;
+}
+
+.quick-added li:first-child {
+  color: var(--gold-light);
+}
+
+@media (min-width: 900px) and (pointer: fine) {
+  .host .quick-add {
+    display: flex;
+  }
+
+  /* das Eingabeblatt deckt am PC die ganze Seite ab, nicht nur die mittlere Spalte */
+  .host .idea-sheet {
+    box-shadow: 0 0 0 100vmax rgba(3, 5, 12, 0.85);
+  }
+}

@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useRef, useState, type ClipboardEvent, type FormEvent } from 'react'
 import { motion } from 'motion/react'
 import '../host/host.css'
 import '../games/quiz/quiz.css'
@@ -12,6 +12,7 @@ import { MediaPicker, Thumb } from '../games/quiz/QuizEditor'
 import { newQuestion, questionStore, type Hint, type Question } from '../games/quiz/questionStore'
 import { parseNumber } from '../games/estimate/logic'
 import NumberInput from '../games/estimate/NumberInput'
+import { parseQuestions } from '../games/quiz/parse'
 import { countStatus, gameToIdeas, hasGameList, IDEA_GAMES, ideaKey, ideaProblems, ideaTitle, starredToGame, type IdeaStatus } from './ideas'
 import PrintTerms from './PrintTerms'
 import QuestionFiles from './QuestionFiles'
@@ -120,6 +121,99 @@ function IdeaCard({
         </button>
       </div>
     </motion.div>
+  )
+}
+
+/**
+ * Schnelleingabe für breite Bildschirme: tippen, Enter, nächster. Mehrere
+ * eingefügte Zeilen werden zu je einem Eintrag (Spalten mit Tab oder „|“).
+ * Bilder, Hinweise und Songs kommen danach über ✎ dazu.
+ */
+function QuickAdd({ gameId, onAdd }: { gameId: string; onAdd: (qs: Question[]) => void }) {
+  const quiz = gameDef(gameId).quiz
+  const label = itemLabel(gameId)
+  const answerOnly = Boolean(quiz?.answerOnly)
+  const withAnswer = Boolean(quiz && !quiz.noAnswer && !answerOnly)
+  const numeric = Boolean(quiz?.numeric)
+  const [main, setMain] = useState('')
+  const [answer, setAnswer] = useState('')
+  const [info, setInfo] = useState('')
+  const [star, setStar] = useState(false)
+  const [added, setAdded] = useState<Question[]>([])
+  const mainRef = useRef<HTMLInputElement>(null)
+
+  const add = (qs: Question[]) => {
+    if (!qs.length) return
+    onAdd(qs)
+    setAdded((a) => [...qs.slice().reverse(), ...a].slice(0, 6))
+    setMain('')
+    setAnswer('')
+    // die Einheit gilt meist für mehrere Schätzfragen hintereinander
+    if (!numeric) setInfo('')
+    mainRef.current?.focus()
+  }
+
+  const extra = { note: '', ...(star ? { status: 'star' as const } : {}) }
+  const submit = (e: FormEvent) => {
+    e.preventDefault()
+    if (!main.trim()) return
+    add([newQuestion({ ...(answerOnly ? { answer: main.trim() } : { question: main.trim(), answer: answer.trim() }), info: info.trim(), ...extra })])
+  }
+
+  const paste = (e: ClipboardEvent<HTMLInputElement>) => {
+    const text = e.clipboardData.getData('text')
+    if (!text.trim().includes('\n')) return
+    e.preventDefault()
+    add(parseQuestions(text, answerOnly).map((p) => newQuestion({ ...p, ...extra })))
+  }
+
+  return (
+    <form className="card quick-add" onSubmit={submit}>
+      <div className="row tight">
+        <input
+          ref={mainRef}
+          className="grow"
+          value={main}
+          placeholder={answerOnly ? `${label} (Lösung)` : label}
+          aria-label={label}
+          onChange={(e) => setMain(e.target.value)}
+          onPaste={paste}
+        />
+        {withAnswer &&
+          (numeric ? (
+            <NumberInput className="mid" value={answer} placeholder="Zahl" aria-label="Lösung als Zahl" onChange={setAnswer} />
+          ) : (
+            <input className="quick-answer" value={answer} placeholder="Antwort" aria-label="Antwort" onChange={(e) => setAnswer(e.target.value)} />
+          ))}
+        {(numeric || (withAnswer && !numeric)) && (
+          <input
+            className={numeric ? 'short' : 'quick-info'}
+            value={info}
+            placeholder={numeric ? 'Einheit' : 'Zusatzinfo'}
+            aria-label={numeric ? 'Einheit' : 'Zusatzinfo'}
+            onChange={(e) => setInfo(e.target.value)}
+          />
+        )}
+        <button type="button" className={`idea-status${star ? ' on-star' : ''}`} aria-pressed={star} title="neue Einträge gleich mit ⭐" onClick={() => setStar((s) => !s)}>
+          ⭐
+        </button>
+        <button type="submit" className="primary" disabled={!main.trim()}>
+          Hinzufügen
+        </button>
+      </div>
+      <p className="hint">Enter fügt hinzu. Mehrere Zeilen einfügen legt alle auf einmal an{withAnswer ? ' (Spalten mit Tab oder „|“)' : ''}.</p>
+      {added.length > 0 && (
+        <ul className="quick-added">
+          {added.map((q) => (
+            <li key={q.id}>
+              {q.status === 'star' && '⭐ '}
+              {ideaTitle(q)}
+              {withAnswer && q.answer && <small> · {q.answer}</small>}
+            </li>
+          ))}
+        </ul>
+      )}
+    </form>
   )
 }
 
@@ -505,6 +599,8 @@ function CollectPage({ local }: { local: boolean }) {
         ))}
       </div>
 
+      <QuickAdd key={gameId} gameId={gameId} onAdd={(qs) => change((all) => [...all, ...qs])} />
+
       {visible.length === 0 && <p className="hint collect-empty">{list.length ? 'Hier ist gerade nichts.' : `Noch keine Ideen. Mit + fügst du die erste ${label === 'Frage' ? 'Frage' : 'Idee'} hinzu.`}</p>}
       {visible.map((q, i) => (
         <Fragment key={q.id}>
@@ -539,9 +635,11 @@ function CollectPage({ local }: { local: boolean }) {
         {!local && <button onClick={() => void signOutHost()}>Abmelden</button>}
       </footer>
 
-      <button className="collect-fab" aria-label={`${label} hinzufügen`} onClick={() => setEditing({ draft: newQuestion({ note: '' }), isNew: true })}>
-        +
-      </button>
+      {!editing && !printing && (
+        <button className="collect-fab" aria-label={`${label} hinzufügen`} onClick={() => setEditing({ draft: newQuestion({ note: '' }), isNew: true })}>
+          +
+        </button>
+      )}
 
       {printing && game.perRound && <PrintTerms gameId={gameId} perRound={game.perRound} onClose={() => setPrinting(false)} />}
 
