@@ -27,6 +27,7 @@ const option = (name, fallback) => {
 const seconds = option('seconds', 40)
 const start = option('start', 0)
 const files = args.length ? args : readdirSync(SONGS).filter((f) => /\.mp3$/i.test(f)).map((f) => join(SONGS, f))
+if (!files.length) console.log(`Keine MP3s in ${SONGS} gefunden.`)
 
 const BITRATES = {
   1: [0, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320], // MPEG 1 Layer III
@@ -103,7 +104,9 @@ for (const file of files) {
     console.log(`✗ ${name}: Datei nicht gefunden`)
     continue
   }
-  const data = readFileSync(file)
+  // immer vom Original aus kürzen, damit auch eine längere Länge als beim letzten Mal geht
+  const backup = join(BACKUP, name)
+  const data = readFileSync(existsSync(backup) ? backup : file)
   const { out, total, kept } = trim(data)
   if (total === 0) {
     console.log(`✗ ${name}: keine MP3-Daten gefunden, nichts geändert`)
@@ -113,7 +116,6 @@ for (const file of files) {
     console.log(`– ${name}: schon ${fmt(total)}, bleibt wie es ist`)
   } else {
     mkdirSync(BACKUP, { recursive: true })
-    const backup = join(BACKUP, name)
     if (!existsSync(backup)) copyFileSync(file, backup)
     writeFileSync(file, out)
     console.log(`✓ ${name}: ${fmt(total)} → ${fmt(kept)}${start ? ` (ab ${start} s)` : ''}, ${mb(data.length)} → ${mb(out.length)}`)
