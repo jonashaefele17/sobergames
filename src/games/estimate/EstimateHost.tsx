@@ -27,6 +27,8 @@ export default function EstimateHost({ state, game }: { state: State; game: Game
   const [questions, setQuestions] = useState<Question[] | null>(null)
   const [answers, setAnswers] = useState<Record<string, number>>({})
   const [manual, setManual] = useState<Record<string, string>>({})
+  // Schätzungen schon verlassener Fragen, damit „Zurück“ sie wiederherstellt; bleiben nur im Regiepult
+  const [stash, setStash] = useState<Record<number, Record<string, number>>>({})
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -80,7 +82,12 @@ export default function EstimateHost({ state, game }: { state: State; game: Game
     const q = questions?.[i]
     if (!q) return
     setManual({})
-    void answerStore.clear().catch(() => setError('Alte Schätzungen konnten nicht gelöscht werden'))
+    const restore = stash[i] ?? {}
+    if (index >= 0) setStash((st) => ({ ...st, [index]: answers }))
+    void answerStore
+      .clear()
+      .then(() => Promise.all(Object.entries(restore).map(([teamId, value]) => answerStore.set(teamId, value))))
+      .catch(() => setError('Schätzungen konnten nicht gewechselt werden'))
     run((s) => resetQuestion(act.showQuestion({ index: i, total: questions!.length, text: q.question, imageUrl: mediaUrl(q.imagePath), unit: (q.format ?? 'number') === 'number' ? q.info.trim() || undefined : undefined, format: q.format && q.format !== 'number' ? q.format : undefined })(s)))
     buzzerStore.arm(true)
   }
@@ -208,6 +215,12 @@ export default function EstimateHost({ state, game }: { state: State; game: Game
       {questions && questions.length > 0 && (
         <button className={`big${index < 0 || solved ? ' primary' : ''}`} disabled={index >= 0 && !upcoming} onClick={() => show(index + 1)}>
           {index < 0 ? 'Frage 1 zeigen' : upcoming ? `Weiter: Frage ${index + 2}` : 'Keine weiteren'}
+        </button>
+      )}
+      {index > 0 && (
+        <button onClick={() => show(index - 1)}>
+          Zurück zu Frage {index}
+          {stash[index - 1] && Object.keys(stash[index - 1]).length > 0 && ' (Schätzungen kommen zurück)'}
         </button>
       )}
       {upcoming && index >= 0 && (
