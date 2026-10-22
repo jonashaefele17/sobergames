@@ -680,7 +680,7 @@ function CollectPage({ local }: { local: boolean }) {
         </button>
       )}
 
-      {printing && game.perRound && <PrintTerms gameId={gameId} perRound={game.perRound} onClose={() => setPrinting(false)} />}
+      {printing && game.perRound && <PrintTerms gameId={gameId} perRound={game.perRound} roundCount={Math.ceil((game.goal ?? game.perRound) / game.perRound)} onClose={() => setPrinting(false)} />}
 
       {editing && (
         <IdeaSheet
