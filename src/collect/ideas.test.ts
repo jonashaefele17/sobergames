@@ -33,6 +33,25 @@ describe('Sammlung', () => {
     expect(next[1].challenge).toBeUndefined()
   })
 
+  it('Spielfragen holen: vorhandene Aufgaben bekommen Baustein und Liste aus dem Spiel', () => {
+    const ideas = [newQuestion({ question: 'Länder in Afrika nennen', status: 'star', note: 'n' }), newQuestion({ question: 'Eigene', challenge: { type: 'free' } })]
+    const game = [
+      newQuestion({ question: 'Länder in Afrika nennen', challenge: { type: 'list' }, hints: [{ id: 'h', kind: 'text', value: 'Ghana' }] }),
+      newQuestion({ question: 'Eigene', challenge: { type: 'count' } }),
+      newQuestion({ question: 'Ball hochhalten', challenge: { type: 'count' } }),
+    ]
+    const merged = gameToIdeas(ideas, game)
+    expect(merged.map((q) => [q.question, q.challenge?.type, q.status])).toEqual([
+      ['Länder in Afrika nennen', 'list', 'star'],
+      ['Eigene', 'free', undefined], // schon eingestellt: bleibt
+      ['Ball hochhalten', 'count', 'star'],
+    ])
+    expect(merged[0].note).toBe('n')
+    expect(merged[0].hints[0]).toMatchObject({ kind: 'text', value: 'Ghana' })
+    expect(merged[1]).toBe(ideas[1])
+    expect(ideaProblems('mein-team-kann', newQuestion({ question: 'X', challenge: { type: 'list' } }))).toEqual(['keine Liste'])
+  })
+
   it('Spielfragen holen: als ⭐ hinten an, ohne Doppelte', () => {
     const ideas = [newQuestion({ question: 'A', answer: '1', status: 'maybe' })]
     const merged = gameToIdeas(ideas, [newQuestion({ question: 'A', answer: '1' }), newQuestion({ question: 'B', answer: '2' })])

@@ -8,7 +8,8 @@ import { signOutHost, useHostSession } from '../lib/hostAuth'
 import Login from '../host/Login'
 import { gameDef } from '../games/catalog'
 import { mediaUrl } from '../games/common/media'
-import { MediaPicker, Thumb } from '../games/quiz/QuizEditor'
+import { ChallengeFields, MediaPicker, Thumb } from '../games/quiz/QuizEditor'
+import { typeLabel } from '../games/challenge/logic'
 import { newQuestion, questionStore, type Hint, type Question } from '../games/quiz/questionStore'
 import { ANSWER_FORMATS, detectFormat, formatAnswer, parseAnswer, type AnswerFormat } from '../games/estimate/logic'
 import AnswerInput from '../games/estimate/AnswerInput'
@@ -57,6 +58,15 @@ function saveError(e: unknown): string {
 }
 
 /** Eine Idee in der Liste: antippen zeigt die Lösung, darunter Bewertung und Sortieren */
+/** Mein Team kann: Baustein der Aufgabe in Kurzform, z. B. „Liste · 44“ oder „Zeit · 3 Timer“ */
+function challengeSummary(q: Question): string {
+  const type = q.challenge?.type ?? 'count'
+  const label = typeLabel(type)
+  if (type === 'list') return `${label} · ${q.hints.filter((h) => h.kind === 'text').length}`
+  if (type === 'time') return `${label} · ${q.challenge?.timers ?? 1} Timer`
+  return label
+}
+
 function IdeaCard({
   gameId,
   q,
@@ -88,6 +98,7 @@ function IdeaCard({
       <button className="idea-main" onClick={onToggle} aria-expanded={open}>
         <b className="num">{pad(index + 1)}</b>
         <span className="grow idea-title">{ideaTitle(q) || 'ohne Text'}</span>
+        {quiz?.challenge && <span className="idea-type">{challengeSummary(q)}</span>}
         <span className="idea-more">{open ? '▴' : '▾'}</span>
       </button>
       {open && (
@@ -97,7 +108,24 @@ function IdeaCard({
           )}
           {q.info && !quiz?.numeric && <p className="hint">{q.info}</p>}
           {q.imagePath && <Thumb path={q.imagePath} />}
-          {q.hints.length > 0 && (
+          {quiz?.challenge && q.hints.some((h) => h.kind === 'text') && (
+            <p className="hint">
+              {q.hints
+                .filter((h) => h.kind === 'text')
+                .map((h) => h.value)
+                .join(', ')}
+            </p>
+          )}
+          {quiz?.challenge && q.hints.some((h) => h.kind === 'image') && (
+            <div className="row tight">
+              {q.hints
+                .filter((h) => h.kind === 'image')
+                .map((h) => (
+                  <Thumb key={h.id} path={h.value} />
+                ))}
+            </div>
+          )}
+          {!quiz?.challenge && q.hints.length > 0 && (
             <ol className="idea-hints">
               {q.hints.map((h) => (
                 <li key={h.id}>{h.kind === 'image' ? <Thumb path={h.value} /> : h.value}</li>
@@ -339,6 +367,8 @@ function IdeaSheet({
         </label>
       )}
 
+      {quiz?.challenge && <ChallengeFields q={q} onChange={update} onPickImage={() => setPicking('hint')} />}
+
       {quiz?.hints && (
         <div className="hint-list">
           <div className="hint">Hinweise in der Reihenfolge, in der sie aufgedeckt werden. Der erste erscheint sofort.</div>
@@ -566,7 +596,11 @@ function CollectPage({ local }: { local: boolean }) {
       const entries = await questionStore.list(gameId)
       const merged = gameToIdeas(list, entries)
       change(() => merged)
-      setMessage(merged.length > list.length ? `${merged.length - list.length} Einträge als ⭐ geholt.` : 'Alle Einträge aus dem Spiel stehen schon in der Sammlung.')
+      const added = merged.length - list.length
+      // bei Mein Team kann bekommen schon vorhandene Aufgaben Baustein und Liste aus dem Spiel
+      const filled = list.filter((q, i) => merged[i] !== q).length
+      const parts = [added && `${added} Einträge als ⭐ geholt`, filled && `${filled} Aufgaben mit Baustein ergänzt`].filter(Boolean)
+      setMessage(parts.length ? `${parts.join(', ')}.` : 'Alle Einträge aus dem Spiel stehen schon in der Sammlung.')
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Spielfragen konnten nicht geladen werden')
     }

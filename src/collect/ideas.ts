@@ -44,6 +44,7 @@ export function ideaProblems(gameId: string, q: Question): string[] {
   const problems: string[] = []
   if (quiz?.audio && !q.audioPath) problems.push('kein Song gewählt')
   if (quiz?.hints && q.hints.length === 0) problems.push('keine Hinweise')
+  if (quiz?.challenge && q.challenge?.type === 'list' && !q.hints.some((h) => h.kind === 'text')) problems.push('keine Liste')
   if (quiz && !quiz.noAnswer && !quiz.answerOnly && !q.answer.trim()) problems.push('keine Antwort')
   else if (quiz?.numeric && parseAnswer(q.answer, q.format) === null) problems.push(q.format === 'date' ? 'Datum ungültig' : q.format === 'year' ? 'Jahr ungültig' : 'Lösung ist keine Zahl')
   return problems
@@ -78,8 +79,15 @@ export const starredToGame = (ideas: Question[], game: Question[] = []): Questio
       return copyEntry(set ? { ...q, challenge: set.challenge, hints: q.hints.length ? q.hints : set.hints } : q)
     })
 
-/** Holt die Einträge einer Spielliste als ⭐ in die Sammlung; was dort schon steht, kommt nicht doppelt. */
+/**
+ * Holt die Einträge einer Spielliste als ⭐ in die Sammlung; was dort schon steht, kommt nicht doppelt.
+ * Steht eine Aufgabe schon ohne Baustein in der Sammlung, bekommt sie Baustein, Liste und Bilder aus dem Spiel.
+ */
 export function gameToIdeas(ideas: Question[], game: Question[]): Question[] {
+  const filled = ideas.map((q) => {
+    const set = !q.challenge ? game.find((g) => g.challenge && sameEntry(g, q)) : undefined
+    return set ? { ...q, challenge: { ...set.challenge! }, hints: q.hints.length ? q.hints : set.hints.map((h) => ({ ...h, id: crypto.randomUUID() })) } : q
+  })
   const fresh = game.filter((g) => !ideas.some((q) => sameEntry(q, g))).map((g) => copyEntry(g, { status: 'star', note: '' }))
-  return [...ideas, ...fresh]
+  return [...filled, ...fresh]
 }

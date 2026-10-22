@@ -379,7 +379,7 @@ export default function QuizEditor({ gameId, onClose }: { gameId: string; onClos
 }
 
 /** Mein Team kann: Baustein einer Aufgabe und was er braucht (Antwortliste, Timer, Bilder) */
-function ChallengeFields({ q, onChange, onPickImage }: { q: Question; onChange: (patch: Partial<Question>) => void; onPickImage: () => void }) {
+export function ChallengeFields({ q, onChange, onPickImage }: { q: Question; onChange: (patch: Partial<Question>) => void; onPickImage: () => void }) {
   const config = q.challenge ?? { type: 'count' as const }
   const texts = q.hints.filter((h) => h.kind === 'text')
   const images = q.hints.filter((h) => h.kind === 'image')

@@ -116,6 +116,17 @@
   overflow-wrap: anywhere;
 }
 
+/* Mein Team kann: Baustein der Aufgabe */
+.idea-type {
+  flex: none;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(var(--gold-rgb), 0.4);
+  color: var(--gold-light);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
 .idea-more {
   color: var(--muted);
 }
