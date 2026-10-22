@@ -141,6 +141,8 @@ export interface MeasureData {
   items: { id: string; name: string }[]
   /** weights[objektId][teamId] = [erste, zweite Hälfte] */
   weights: Record<string, Record<string, [number | null, number | null]>>
+  /** Seite auf dem Beamer (0-basiert), wenn es mehr Objekte gibt, als auf eine passen */
+  page?: number
 }
 
 export interface Play {

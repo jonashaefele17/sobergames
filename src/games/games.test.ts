@@ -7,7 +7,7 @@ import { GAMES, gameKind, gameName } from './catalog'
 import { formatClock, formatStopwatch } from './common/time'
 import { adjustPoints, award, detectFormat, estimateData, estimateTotals, formatAnswer, formatDate, formatDistance, groupDigits, maskDate, maskYear, parseAnswer, parseDate, parseNumber, resetQuestion, revealGuess, revealSolution, setMode, setSubmitted } from './estimate/logic'
 import { addRound, hasEntries, reached, removeRound, scoreData, setShot, setShotCount, setTarget, teamShots, totals, undoRound } from './score/logic'
-import { difference, measureData, measureTotals, setItems, setWeight } from './measure/logic'
+import { difference, measureData, measurePage, measureTotals, pageCount, pageItems, setItems, setWeight, showPage } from './measure/logic'
 import { awarded, awardTotals, toggleAward } from './prompt/logic'
 import { setTime, start, stop, stopwatchData } from './stopwatch/logic'
 
@@ -206,6 +206,26 @@ describe('Perfect Cut: Differenzen', () => {
     expect(measureData(s).weights[y.id]).toBeUndefined()
     expect(difference(measureData(s), x.id, a)).toBe(3.5)
     expect(measureTotals(measureData(s), ids(s))).toEqual({}) // Banane fehlt noch
+  })
+
+  it('mehr als 4 Objekte verteilen sich auf Seiten; Eintragen springt zur Seite des Objekts', () => {
+    let s = play('perfect-cut')
+    const [a] = ids(s)
+    const items = Array.from({ length: 8 }, (_, i) => ({ id: `o${i}`, name: `Objekt ${i + 1}` }))
+    s = setItems(items)(s)
+    expect(pageCount(measureData(s))).toBe(2)
+    expect(measurePage(measureData(s))).toBe(0)
+    expect(pageItems(measureData(s), 1).map((i) => i.id)).toEqual(['o4', 'o5', 'o6', 'o7'])
+
+    s = setWeight('o5', a, 0, 50)(s)
+    expect(measurePage(measureData(s))).toBe(1)
+    s = showPage(0)(s)
+    expect(measurePage(measureData(s))).toBe(0)
+    expect(measurePage(measureData(showPage(7)(s)))).toBe(1) // nicht über die letzte Seite hinaus
+
+    // Objekte weggenommen: die Seite rutscht auf die letzte vorhandene
+    s = setItems(items.slice(0, 3))(showPage(1)(s))
+    expect(measurePage(measureData(s))).toBe(0)
   })
 })
 

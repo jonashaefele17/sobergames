@@ -36,7 +36,7 @@ Jedes Spiel mit eigener Seite startet im Spiele-Tab über **„Spiel starten“*
 | Stoppuhr | Ex oder zieh | je Team Start/Stopp, kürzeste Zeit gewinnt |
 | Countdown | Build it | Timer läuft groß auf dem Beamer, danach Werte eintragen |
 | Fragenrunde | Wer würde eher | Frage zeigen, je Team den Punkt antippen, eigene Fragenliste ohne Antworten |
-| Messen | Perfect Cut | Objekte im Setup anlegen („Objekte bearbeiten“), im Spiel je Team beide Hälften in Gramm eintragen, kleinste Gesamtdifferenz gewinnt |
+| Messen | Perfect Cut | Objekte im Setup anlegen („Objekte bearbeiten“), im Spiel je Team beide Hälften in Gramm eintragen, kleinste Gesamtdifferenz gewinnt. Ab 5 Objekten blättert der Beamer in Seiten zu je 4 (Umschalten im Regiepult, beim Eintragen springt er von selbst) |
 | Schätzen | Schätzfragen | Teams tippen am Handy, Schätzungen einzeln aufdecken, dann die Lösung; siehe unten |
 | Buzzer-Quiz | Allgemeinwissen, Guess the Location, Songs erraten | siehe unten |
 

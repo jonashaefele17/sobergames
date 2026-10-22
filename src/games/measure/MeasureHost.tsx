@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import './measure.css'
 import * as act from '../../lib/actions'
 import { teamStyle } from '../../lib/motion'
@@ -6,17 +6,22 @@ import { gameStore } from '../../store'
 import type { Game, State } from '../../store/types'
 import { gameDef, gameName } from '../catalog'
 import { questionStore } from '../quiz/questionStore'
-import { difference, measureData, measureTotals, setItems, setWeight } from './logic'
+import { difference, ITEMS_PER_PAGE, measureData, measurePage, measureTotals, pageCount, setItems, setWeight, showPage } from './logic'
 
 const run = (fn: (s: State) => State) => gameStore.update(fn)
 const num = (v: string) => (v === '' ? null : Number(v))
 
-/** Regiepult für Messspiele: Objekte anlegen, je Team beide Hälften wiegen, kleinste Gesamtdifferenz gewinnt. */
+/**
+ * Regiepult für Messspiele: Objekte anlegen, je Team beide Hälften wiegen, kleinste Gesamtdifferenz gewinnt.
+ * Der Beamer zeigt 4 Objekte je Seite; geblättert wird hier oder automatisch beim Eintragen.
+ */
 export default function MeasureHost({ state, game }: { state: State; game: Game }) {
   const unit = gameDef(game.id).unit ?? ''
   const data = measureData(state)
   const totals = measureTotals(data, state.teams.map((t) => t.id))
   const complete = state.teams.every((t) => totals[t.id] !== undefined)
+  const pages = pageCount(data)
+  const page = measurePage(data)
   const [loaded, setLoaded] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -52,33 +57,54 @@ export default function MeasureHost({ state, game }: { state: State; game: Game 
         <p className="warn">Noch keine Objekte – im Setup bei „{gameName(game)}“ auf „Objekte bearbeiten“ tippen.</p>
       )}
 
-      {data.items.map((item) => (
-        <div key={item.id} className="card">
-          <div className="item-name">{item.name}</div>
-          {state.teams.map((t) => {
-            const pair = data.weights[item.id]?.[t.id] ?? [null, null]
-            const diff = difference(data, item.id, t.id)
-            return (
-              <div key={t.id} className="row tight measure-row" style={teamStyle(t.color)}>
-                <span className="dot" />
-                <span className="grow">{t.name}</span>
-                {([0, 1] as const).map((half) => (
-                  <input
-                    key={half}
-                    type="number"
-                    inputMode="decimal"
-                    min={0}
-                    placeholder={unit || '–'}
-                    aria-label={`${item.name} ${t.name} Hälfte ${half + 1}`}
-                    value={pair[half] ?? ''}
-                    onChange={(e) => run(setWeight(item.id, t.id, half, num(e.target.value)))}
-                  />
-                ))}
-                <b className="diff">{diff === null ? '–' : `Δ ${diff.toLocaleString('de-DE')}`}</b>
-              </div>
-            )
-          })}
-        </div>
+      {pages > 1 && (
+        <>
+          <div className="seg measure-pages">
+            {Array.from({ length: pages }, (_, p) => (
+              <button key={p} className={p === page ? 'on' : ''} onClick={() => run(showPage(p))}>
+                Seite {p + 1}
+              </button>
+            ))}
+          </div>
+          <p className="hint">Beamer zeigt Seite {page + 1}. Beim Eintragen springt er von selbst zur Seite des Objekts.</p>
+        </>
+      )}
+
+      {data.items.map((item, index) => (
+        <Fragment key={item.id}>
+          {pages > 1 && index % ITEMS_PER_PAGE === 0 && (
+            <h3 className={`measure-page-head${index / ITEMS_PER_PAGE === page ? ' on' : ''}`}>
+              Seite {index / ITEMS_PER_PAGE + 1}
+              {index / ITEMS_PER_PAGE === page && <small>auf dem Beamer</small>}
+            </h3>
+          )}
+          <div className="card">
+            <div className="item-name">{item.name}</div>
+            {state.teams.map((t) => {
+              const pair = data.weights[item.id]?.[t.id] ?? [null, null]
+              const diff = difference(data, item.id, t.id)
+              return (
+                <div key={t.id} className="row tight measure-row" style={teamStyle(t.color)}>
+                  <span className="dot" />
+                  <span className="grow">{t.name}</span>
+                  {([0, 1] as const).map((half) => (
+                    <input
+                      key={half}
+                      type="number"
+                      inputMode="decimal"
+                      min={0}
+                      placeholder={unit || '–'}
+                      aria-label={`${item.name} ${t.name} Hälfte ${half + 1}`}
+                      value={pair[half] ?? ''}
+                      onChange={(e) => run(setWeight(item.id, t.id, half, num(e.target.value)))}
+                    />
+                  ))}
+                  <b className="diff">{diff === null ? '–' : `Δ ${diff.toLocaleString('de-DE')}`}</b>
+                </div>
+              )
+            })}
+          </div>
+        </Fragment>
       ))}
 
       {data.items.length > 0 && (

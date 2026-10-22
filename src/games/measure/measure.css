@@ -8,6 +8,19 @@
   gap: calc(var(--u) * 0.8);
 }
 
+/* eine Seite Objekte; teilt die Spalten der Tabelle */
+.m-page {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: subgrid;
+  gap: inherit;
+}
+
+.m-gap {
+  grid-column: 1 / -1;
+  min-height: calc(var(--u) * 6.4);
+}
+
 .m-team {
   padding: calc(var(--u) * 0.6) calc(var(--u) * 1) calc(var(--u) * 0.4);
   border-bottom: calc(var(--u) * 0.4) solid var(--team);
@@ -101,6 +114,29 @@
   color: var(--gold-light);
   font-weight: 600;
   flex: none;
+}
+
+.host .measure-pages button {
+  flex: 1;
+}
+
+.host .measure-page-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 18px 0 8px;
+  color: var(--muted);
+  transition: color var(--t-mid) var(--ease-out);
+}
+
+.host .measure-page-head.on {
+  color: var(--gold-light);
+}
+
+.host .measure-page-head small {
+  font-family: var(--text);
+  font-size: 12px;
+  letter-spacing: 0;
 }
 
 .host .item-name {
