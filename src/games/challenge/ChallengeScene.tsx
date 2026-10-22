@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'motion/react'
-import { useLayoutEffect, useRef } from 'react'
+import { useLayoutEffect, useRef, type ReactNode } from 'react'
 import './challenge.css'
 import { SceneHead } from '../../components/shared'
 import { EASE_OUT, SPRING, teamStyle } from '../../lib/motion'
@@ -40,7 +40,15 @@ export default function ChallengeScene({ state, game }: { state: State; game: Ga
           )}
         </AnimatePresence>
       </div>
-      <RoundBar state={state} scores={challengeTotals(state)} highlight={r?.teamId ? [r.teamId] : []} />
+      {/* während Bilder laufen, klappt der Punktestand weg und gibt dem Bild Platz */}
+      <motion.div
+        className="ch-bar"
+        initial={false}
+        animate={r?.type === 'time' && r.image ? { height: 0, opacity: 0 } : { height: 'auto', opacity: 1 }}
+        transition={{ duration: 0.5, ease: EASE_OUT }}
+      >
+        <RoundBar state={state} scores={challengeTotals(state)} highlight={r?.teamId ? [r.teamId] : []} />
+      </motion.div>
     </div>
   )
 }
@@ -52,11 +60,32 @@ function Run({ r, state }: { r: ChallengeRun; state: State }) {
   const isTime = r.type === 'time'
   const p = progress(r, now)
   const done = r.targetShown && reached(r, now) === true
+  const withImage = isTime && r.image !== null
   const fmt = (n: number) => (isTime ? formatStopwatch(n) : String(n))
   const goal = (n: number) => (isTime ? formatTarget(n) : String(n))
 
+  const progressBar = (
+    <div className="ch-progress">
+      {/* bei einem einzigen Timer steht die Zeit schon groß darüber */}
+      {!(isTime && r.timers.length === 1) && (
+        <span className="ch-count">
+          {fmt(p)}
+          {r.targetShown && r.target !== null && <small> / {goal(r.target)}</small>}
+        </span>
+      )}
+      <div className="ch-track">
+        <motion.div
+          className={`ch-fill${done ? ' done' : ''}`}
+          initial={false}
+          animate={{ scaleX: r.targetShown && r.target ? Math.min(1, p / r.target) : 0 }}
+          transition={running ? { duration: 0.1, ease: 'linear' } : { duration: 0.8, ease: EASE_OUT }}
+        />
+      </div>
+    </div>
+  )
+
   return (
-    <div className="ch-run" style={teamStyle(team?.color ?? '#e8b923')}>
+    <div className={`ch-run${withImage ? ' with-image' : ''}`} style={teamStyle(team?.color ?? '#e8b923')}>
       <div className="ch-top">
         <div className="ch-title-block">
           <AnimatePresence mode="wait">
@@ -87,29 +116,14 @@ function Run({ r, state }: { r: ChallengeRun; state: State }) {
         </AnimatePresence>
       </div>
 
-      <div className={`ch-main ${r.type}${isTime && r.image ? ' with-image' : ''}`}>
+      <div className={`ch-main ${r.type}${withImage ? ' with-image' : ''}`}>
         {r.type === 'count' && <Counts r={r} />}
         {(r.type === 'list' || r.type === 'free') && <Names r={r} />}
-        {isTime && <Times r={r} now={now} />}
+        {/* mit Bild steht der Fortschritt klein bei den Timern in der Ecke */}
+        {isTime && <Times r={r} now={now} footer={withImage ? progressBar : null} />}
       </div>
 
-      <div className="ch-progress">
-        {/* bei einem einzigen Timer steht die Zeit schon groß darüber */}
-        {!(isTime && r.timers.length === 1) && (
-          <span className="ch-count">
-            {fmt(p)}
-            {r.targetShown && r.target !== null && <small> / {goal(r.target)}</small>}
-          </span>
-        )}
-        <div className="ch-track">
-          <motion.div
-            className={`ch-fill${done ? ' done' : ''}`}
-            initial={false}
-            animate={{ scaleX: r.targetShown && r.target ? Math.min(1, p / r.target) : 0 }}
-            transition={running ? { duration: 0.1, ease: 'linear' } : { duration: 0.8, ease: EASE_OUT }}
-          />
-        </div>
-      </div>
+      {!withImage && progressBar}
 
       <AnimatePresence>
         {r.verdict && (
@@ -189,7 +203,7 @@ function Names({ r }: { r: ChallengeRun }) {
   )
 }
 
-function Times({ r, now }: { r: ChallengeRun; now: number }) {
+function Times({ r, now, footer }: { r: ChallengeRun; now: number; footer: ReactNode }) {
   const active = r.timers.findIndex((t) => t.startedAt !== null)
   return (
     <>
@@ -197,12 +211,15 @@ function Times({ r, now }: { r: ChallengeRun; now: number }) {
         {r.image && <motion.img key={r.image} className="ch-image" src={r.image} alt="" initial={{ opacity: 0, scale: 0.94 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.03 }} transition={{ duration: 0.45, ease: EASE_OUT }} />}
       </AnimatePresence>
       <div className="ch-timers">
-        {r.timers.map((t, i) => (
-          <div key={i} className={`ch-clock${i === active ? ' running' : ''}${r.timers.length > 1 ? ' small' : ''}`}>
-            {r.timers.length > 1 && <span className="ch-round-label">Timer {i + 1}</span>}
-            <span className="ch-clock-value">{formatStopwatch(timerMs(t, now))}</span>
-          </div>
-        ))}
+        <div className="ch-clocks">
+          {r.timers.map((t, i) => (
+            <div key={i} className={`ch-clock${i === active ? ' running' : ''}${r.timers.length > 1 ? ' small' : ''}`}>
+              {r.timers.length > 1 && <span className="ch-round-label">Timer {i + 1}</span>}
+              <span className="ch-clock-value">{formatStopwatch(timerMs(t, now))}</span>
+            </div>
+          ))}
+        </div>
+        {footer}
       </div>
     </>
   )

@@ -181,15 +181,106 @@
   border: 1px solid rgba(var(--gold-rgb), 0.35);
 }
 
+/* mit Bild: das Bild ist der Vordergrund, Titel und Ziel werden kompakt, der Timer sitzt klein in der Ecke */
+.ch-run.with-image {
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: calc(var(--u) * 1.2);
+}
+
+/* Titel und Ziel schrumpfen weich, wenn das erste Bild kommt */
+.ch-team,
+.ch-title,
+.ch-goal-label,
+.ch-goal-value {
+  transition: font-size var(--t-mid) var(--ease-out);
+}
+
+/* Punktestand unten, klappt bei Bildern weg (siehe ChallengeScene) */
+.ch-bar {
+  flex: none;
+  overflow: hidden;
+}
+
+.ch-run.with-image .ch-team {
+  font-size: calc(var(--u) * 1.8);
+}
+
+.ch-run.with-image .ch-title {
+  font-size: calc(var(--u) * 3.4);
+}
+
+.ch-run.with-image .ch-goal {
+  min-width: calc(var(--u) * 12);
+  padding: calc(var(--u) * 0.5) calc(var(--u) * 1.6) calc(var(--u) * 0.3);
+}
+
+.ch-run.with-image .ch-goal-label {
+  font-size: calc(var(--u) * 1.2);
+}
+
+.ch-run.with-image .ch-goal-value {
+  font-size: calc(var(--u) * 4.2);
+}
+
+.ch-main.with-image {
+  position: relative;
+}
+
+.ch-main.with-image .ch-image {
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  object-fit: contain;
+  border: none;
+  border-radius: calc(var(--u) * 1);
+}
+
+.ch-main.with-image .ch-timers {
+  position: absolute;
+  right: calc(var(--u) * 1);
+  bottom: calc(var(--u) * 1);
+  min-width: calc(var(--u) * 16);
+  padding: calc(var(--u) * 0.6) calc(var(--u) * 1.6) calc(var(--u) * 0.4);
+  border-radius: calc(var(--u) * 1);
+  border: 1px solid var(--line);
+  background: rgba(7, 11, 25, 0.72);
+  backdrop-filter: blur(8px);
+}
+
+.ch-main.with-image .ch-clocks {
+  flex-wrap: nowrap;
+  gap: calc(var(--u) * 1.6);
+}
+
+.ch-main.with-image .ch-progress {
+  align-self: stretch;
+  gap: calc(var(--u) * 1);
+}
+
+.ch-main.with-image .ch-count {
+  font-size: calc(var(--u) * 2.2);
+}
+
+.ch-main.with-image .ch-track {
+  height: calc(var(--u) * 0.6);
+}
+
+.ch-main.with-image .ch-round-label {
+  font-size: calc(var(--u) * 1.1);
+}
+
 .ch-timers {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(var(--u) * 0.8);
+}
+
+.ch-clocks {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
   gap: calc(var(--u) * 2);
-}
-
-.ch-main.with-image .ch-timers {
-  flex-direction: column;
 }
 
 .ch-clock {
@@ -210,12 +301,9 @@
   font-size: calc(var(--u) * 8);
 }
 
-.ch-main.with-image .ch-clock-value {
-  font-size: calc(var(--u) * 11);
-}
-
+.ch-main.with-image .ch-clock-value,
 .ch-main.with-image .ch-clock.small .ch-clock-value {
-  font-size: calc(var(--u) * 6);
+  font-size: calc(var(--u) * 4);
 }
 
 .ch-clock.running .ch-clock-value {

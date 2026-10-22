@@ -348,6 +348,10 @@ function TimePanel({ r, task, now }: { r: ChallengeRun; task: Question | undefin
   const images = (task?.hints ?? []).filter((h) => h.kind === 'image').map((h) => mediaUrl(h.value)).filter((u): u is string => Boolean(u))
   const at = r.image ? images.indexOf(r.image) : -1
   const busy = r.timers.some((t) => t.startedAt !== null)
+  // das erste Bild startet zugleich den Timer: den nächsten unbenutzten, sonst läuft der letzte weiter
+  const unused = r.timers.findIndex((t) => t.ms === 0)
+  const next = unused >= 0 ? unused : r.timers.length - 1
+  const show = (url: string) => run(at < 0 ? (s) => startTimer(next, syncedNow())(setImage(url)(s)) : setImage(url))
 
   return (
     <>
@@ -380,8 +384,8 @@ function TimePanel({ r, task, now }: { r: ChallengeRun; task: Question | undefin
               ←
             </button>
             <span className="grow hint ch-image-pos">{at < 0 ? 'kein Bild' : `Bild ${at + 1} / ${images.length}`}</span>
-            <button disabled={at >= images.length - 1} onClick={() => run(setImage(images[at + 1]))}>
-              {at < 0 ? 'Erstes Bild' : '→'}
+            <button className={at < 0 ? 'primary' : ''} disabled={at >= images.length - 1} onClick={() => show(images[at + 1])}>
+              {at < 0 ? (busy ? 'Erstes Bild' : 'Erstes Bild + Timer starten') : '→'}
             </button>
             <button disabled={at < 0} onClick={() => run(setImage(null))}>
               Aus
@@ -389,7 +393,7 @@ function TimePanel({ r, task, now }: { r: ChallengeRun; task: Question | undefin
           </div>
           <div className="ch-thumbs">
             {images.map((u, i) => (
-              <button key={u} className={`ch-thumb${i === at ? ' on' : ''}`} onClick={() => run(setImage(u))}>
+              <button key={u} className={`ch-thumb${i === at ? ' on' : ''}`} onClick={() => show(u)}>
                 <img src={u} alt="" loading="lazy" />
               </button>
             ))}
