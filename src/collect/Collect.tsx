@@ -701,7 +701,7 @@ function CollectPage({ local }: { local: boolean }) {
           <p className="hint">Holt, was schon im Regiepult steht, als ⭐ hierher. Doppelte kommen nicht nochmal.</p>
         </>
       )}
-      <QuestionFiles onImported={() => setReload((n) => n + 1)} />
+      <QuestionFiles toIdeas onImported={() => setReload((n) => n + 1)} />
 
       <footer className="row">
         <span className="grow" />

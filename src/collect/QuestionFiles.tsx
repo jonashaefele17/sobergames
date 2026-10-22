@@ -1,9 +1,12 @@
 import { useState } from 'react'
-import { createQuestionExport, describeQuestionExport, parseQuestionExport, restoreQuestions } from '../lib/backup'
+import { contentToIdeas, createQuestionExport, describeQuestionExport, parseQuestionExport, restoreQuestions } from '../lib/backup'
 import { downloadJson, fileStamp } from '../lib/download'
 
-/** Fragen exportieren und importieren, ohne den Spielstand anzufassen (Sammlung und Reset-Tab). */
-export default function QuestionFiles({ onImported }: { onImported?: () => void }) {
+/**
+ * Fragen exportieren und importieren, ohne den Spielstand anzufassen (Sammlung und Reset-Tab).
+ * In der Sammlung (`toIdeas`) landen eingespielte Spiellisten zusätzlich in der Sammlung.
+ */
+export default function QuestionFiles({ onImported, toIdeas = false }: { onImported?: () => void; toIdeas?: boolean }) {
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
 
@@ -24,9 +27,11 @@ export default function QuestionFiles({ onImported }: { onImported?: () => void 
     setBusy(true)
     try {
       const data = parseQuestionExport(await file.text())
-      if (confirm(`${describeQuestionExport(data)}\n\nEinspielen? Die Fragen dieser Spiele werden ersetzt. Spielstand und Teams bleiben.`)) {
+      const extra = toIdeas ? ' Was davon noch nicht in der Sammlung steht, kommt als ⭐ dazu.' : ''
+      if (confirm(`${describeQuestionExport(data)}\n\nEinspielen? Die Fragen dieser Spiele werden ersetzt.${extra} Spielstand und Teams bleiben.`)) {
         await restoreQuestions(data)
-        setMessage('Fragen eingespielt.')
+        const added = toIdeas ? await contentToIdeas(data) : 0
+        setMessage(added ? `Fragen eingespielt, ${added} neu in der Sammlung.` : 'Fragen eingespielt.')
         onImported?.()
       }
     } catch (e) {

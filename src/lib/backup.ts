@@ -1,4 +1,4 @@
-import { IDEA_GAMES, ideaKey, type IdeaStatus } from '../collect/ideas'
+import { gameToIdeas, IDEA_GAMES, ideaKey, type IdeaStatus } from '../collect/ideas'
 import { GAMES, gameDef } from '../games/catalog'
 import type { AnswerFormat } from '../games/estimate/logic'
 import { newQuestion, questionStore, type Hint, type Question } from '../games/quiz/questionStore'
@@ -157,6 +157,24 @@ export function parseQuestionExport(input: string): QuestionExport {
 export async function restoreQuestions(data: QuestionExport): Promise<void> {
   for (const [id, list] of Object.entries(data.content)) await questionStore.save(id, list)
   await saveIdeas(data.ideas)
+}
+
+/**
+ * Beim Einspielen in der Sammlung: Spiellisten aus der Datei, zu denen sie keine
+ * Sammlung mitbringt, kommen auch in die Sammlung – Neues als ⭐, schon Vorhandenes
+ * wird nur um Baustein und Liste ergänzt. Gibt die Zahl der neuen Einträge zurück.
+ */
+export async function contentToIdeas(data: QuestionExport): Promise<number> {
+  let added = 0
+  for (const { id } of IDEA_GAMES) {
+    const content = data.content[id]
+    if (!content?.length || data.ideas[id]) continue
+    const ideas = await questionStore.list(ideaKey(id))
+    const merged = gameToIdeas(ideas, content)
+    added += merged.length - ideas.length
+    await questionStore.save(ideaKey(id), merged)
+  }
+  return added
 }
 
 /** Rückfrage vor dem Einspielen: je Spiel, was ersetzt wird */
