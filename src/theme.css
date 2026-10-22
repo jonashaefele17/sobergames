@@ -51,6 +51,19 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Regiepult und Sammlung: Platz für den Scrollbalken bleibt frei, damit beim Tab-Wechsel nichts seitlich springt */
+html:has(.host) {
+  scrollbar-gutter: stable;
+}
+
+/* offene Vollbild-Fenster sperren die Seite dahinter; gescrollt wird nur im Fenster */
+@media screen {
+  html:has(.quiz-editor, .media-picker, .print-view) {
+    overflow: hidden;
+    scrollbar-gutter: auto;
+  }
+}
+
 button,
 input,
 select,

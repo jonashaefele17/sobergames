@@ -547,9 +547,4 @@
   .host .quick-add {
     display: flex;
   }
-
-  /* das Eingabeblatt deckt am PC die ganze Seite ab, nicht nur die mittlere Spalte */
-  .host .idea-sheet {
-    box-shadow: 0 0 0 100vmax rgba(3, 5, 12, 0.85);
-  }
 }
