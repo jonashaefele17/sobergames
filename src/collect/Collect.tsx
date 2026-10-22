@@ -553,7 +553,7 @@ function CollectPage({ local }: { local: boolean }) {
     ]
     if (!confirm(lines.join(''))) return
     try {
-      await questionStore.save(gameId, starredToGame(list))
+      await questionStore.save(gameId, starredToGame(list, await questionStore.list(gameId)))
       setInGame((c) => ({ ...c, [gameId]: starred.length }))
       setMessage(`${starred.length} ⭐ stehen jetzt im Spiel.`)
     } catch (e) {

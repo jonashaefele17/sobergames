@@ -1,7 +1,7 @@
 import type { Game, State } from '../store/types'
 
 /** Spielart: bestimmt, welche Steuerung, Beamer-Szene und Daten ein Spiel hat (siehe registry.tsx). */
-export type GameKind = 'plain' | 'quiz' | 'score' | 'countdown' | 'stopwatch' | 'prompt' | 'measure' | 'estimate'
+export type GameKind = 'plain' | 'quiz' | 'score' | 'countdown' | 'stopwatch' | 'prompt' | 'measure' | 'estimate' | 'challenge'
 
 export interface GameVariant {
   key: string
@@ -49,6 +49,8 @@ export interface QuizConfig {
   noAnswer?: boolean
   /** reine Namensliste: ohne Bilder und ohne Beispielfragen, z. B. die Objekte bei Perfect Cut */
   plainList?: boolean
+  /** Aufgaben mit Baustein (Zählen, Liste, frei, Zeit), z. B. bei „Mein Team kann“ */
+  challenge?: boolean
 }
 
 export interface GameDef {
@@ -141,8 +143,8 @@ export const GAMES: GameDef[] = [
   {
     id: 'mein-team-kann',
     name: 'Mein Team kann',
-    kind: 'score',
-    score: { mode: 'free' },
+    kind: 'challenge',
+    quiz: { itemLabel: 'Aufgabe', noAnswer: true, challenge: true },
   },
 ]
 

@@ -1,6 +1,7 @@
 import type { IdeaStatus } from '../../collect/ideas'
 import type { AnswerFormat } from '../estimate/logic'
 import { isSupabaseConfigured, supabase } from '../../lib/supabaseClient'
+import type { ChallengeConfig } from '../../store/types'
 
 /** Ein Hinweis zu einem Eintrag; bei Bildern ist value der Pfad im Medienordner (siehe common/media.ts) */
 export interface Hint {
@@ -25,6 +26,8 @@ export interface Question {
   audioStart?: number
   /** Schätzfragen: Format der Lösung; ohne Angabe eine Zahl */
   format?: AnswerFormat
+  /** Mein Team kann: Baustein der Aufgabe; Antwortliste bzw. Bilder stehen in den Hinweisen */
+  challenge?: ChallengeConfig
   /** nur in der Sammlung: Bewertung und eigene Notiz */
   status?: IdeaStatus
   note?: string
@@ -67,6 +70,7 @@ interface Row {
   status?: string | null
   note?: string | null
   format?: string | null
+  challenge?: ChallengeConfig | null
 }
 
 /** fehlende Spalten heißen fast immer: das Schema-Update wurde noch nicht eingespielt */
@@ -89,6 +93,7 @@ const supabaseStore: QuestionStore = {
       ...(r.status ? { status: r.status as IdeaStatus } : {}),
       ...(r.note ? { note: r.note } : {}),
       ...(r.format ? { format: r.format as AnswerFormat } : {}),
+      ...(r.challenge ? { challenge: r.challenge } : {}),
     }))
   },
 
@@ -99,6 +104,7 @@ const supabaseStore: QuestionStore = {
     const withAudio = withIdea || questions.some((q) => q.audioPath)
     // gesetzt wird das Format nur bei Schätzfragen, dort auch „number“, damit ein Zurückstellen gespeichert wird
     const withFormat = questions.some((q) => q.format !== undefined)
+    const withChallenge = questions.some((q) => q.challenge)
     const rows = questions.map((q, position) => ({
       id: q.id,
       game_id: gameId,
@@ -113,6 +119,7 @@ const supabaseStore: QuestionStore = {
       ...(withAudio ? { audio_path: q.audioPath ?? null, audio_start: q.audioStart ?? 0 } : {}),
       ...(withIdea ? { status: q.status ?? '', note: q.note ?? '' } : {}),
       ...(withFormat ? { format: q.format ?? '' } : {}),
+      ...(withChallenge ? { challenge: q.challenge ?? null } : {}),
     }))
     if (rows.length) {
       const { error } = await supabase!.from(TABLE).upsert(rows)

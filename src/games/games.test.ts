@@ -10,6 +10,7 @@ import { addRound, hasEntries, reached, removeRound, scoreData, setShot, setShot
 import { difference, measureData, measurePage, measureTotals, pageCount, pageItems, setItems, setWeight, showPage } from './measure/logic'
 import { awarded, awardTotals, toggleAward } from './prompt/logic'
 import { setTime, start, stop, stopwatchData } from './stopwatch/logic'
+import * as ch from './challenge/logic'
 
 const play = (id: string): State => act.startPlay(id)(act.initialState())
 const ids = (s: State) => s.teams.map((t) => t.id)
@@ -43,15 +44,13 @@ describe('Punktetafel', () => {
   })
 
   it('Abzüge sind möglich, Wertung nach Punkten', () => {
-    let s = play('mein-team-kann')
+    let s = play('scribble-rush')
     const [a, b, c] = ids(s)
     s = addRound({ [a]: 2, [b]: -1 })(s)
     s = addRound({ [c]: 1 })(s)
     s = act.endPlay(totals(scoreData(s), ids(s)))(s)
     expect(s.scene).toBe('scoreboard')
-    expect(s.games.find((g) => g.id === 'mein-team-kann')?.result?.places).toEqual([[a], [c], [b]])
-    // Finale zählt dreifach
-    expect(standings(s).map((r) => r.points)).toEqual([9, 6, 3])
+    expect(s.games.find((g) => g.id === 'scribble-rush')?.result?.places).toEqual([[a], [c], [b]])
   })
 
   it('jede Punktetafel hat einen Modus', () => {
@@ -352,5 +351,84 @@ describe('Schätzfragen: Jahr und Datum', () => {
     expect(detectFormat('09.11.1989')).toBe('date')
     expect(detectFormat('1.250')).toBeUndefined()
     expect(detectFormat('157')).toBeUndefined()
+  })
+})
+
+describe('Mein Team kann', () => {
+  const task = (s: State, type: 'count' | 'list' | 'free' | 'time', timers?: number) => ch.startChallenge(0, 10, 'Aufgabe', { type, timers })(s)
+  const run = (s: State) => ch.challengeData(s).current!
+
+  it('Zählen: Runden nach Teamgröße, Summe gegen Ziel, Wertung 2 bzw. 1 für die anderen', () => {
+    let s = play('mein-team-kann')
+    const [a, b, c] = ids(s)
+    s = { ...s, teams: s.teams.map((t) => (t.id === a ? { ...t, playerIds: ['p1', 'p2', 'p3', 'p4'] } : t)) }
+    s = task(s, 'count')
+    expect(ch.reached(run(s), 0)).toBeNull() // ohne Ziel kein Vorschlag
+    s = ch.setTarget(30)(ch.setTeam(a)(s))
+    expect(run(s).counts).toEqual([null, null, null]) // 4 Spieler → 3 Runden
+    s = ch.setCount(0, 12)(ch.setCount(1, 10)(s))
+    expect(ch.progress(run(s), 0)).toBe(22)
+    expect(ch.reached(run(s), 0)).toBe(false)
+    s = ch.setCount(2, 8)(s)
+    expect(ch.reached(run(s), 0)).toBe(true) // genau das Ziel reicht
+    expect(run(ch.setTeam(b)(s)).counts).toEqual([12, 10, 8]) // ohne Spieler 3 Runden, Werte bleiben
+
+    s = ch.decide(true)(s)
+    expect(ch.challengeTotals(s)).toEqual({ [a]: 2, [b]: 0, [c]: 0 })
+    s = ch.decide(false)(s) // umentschieden: ersetzt, zählt nicht doppelt
+    expect(ch.challengeTotals(s)).toEqual({ [a]: 0, [b]: 1, [c]: 1 })
+    s = ch.decide(null)(s)
+    expect(ch.challengeTotals(s)).toEqual({ [a]: 0, [b]: 0, [c]: 0 })
+    expect(ch.challengeData(s).results).toEqual({})
+  })
+
+  it('Liste: abhaken, einzeln aufdecken, nicht Genanntes zeigen', () => {
+    let s = task(play('mein-team-kann'), 'list')
+    s = ch.toggleNamed('Neuer')(ch.toggleNamed('Lahm')(ch.toggleNamed('Klose')(s)))
+    expect(ch.visibleNames(run(s))).toEqual([]) // erst zählen
+    s = ch.reveal('Lahm')(ch.reveal('Unbekannt')(s))
+    expect(ch.visibleNames(run(s))).toEqual(['Lahm'])
+    expect(ch.visibleNames(run(ch.setLive(true)(s)))).toEqual(['Klose', 'Lahm', 'Neuer'])
+    s = ch.toggleNamed('Lahm')(s) // wieder abgewählt: auch nicht mehr aufgedeckt
+    expect(run(s).revealed).toEqual([])
+    s = ch.showMissed(['Neuer', 'Lahm', 'Klose', 'Müller'])(s)
+    expect(run(s).missed).toEqual(['Lahm', 'Müller'])
+    expect(ch.progress(run(s), 0)).toBe(2)
+  })
+
+  it('frei: Genanntes ohne Doppelte', () => {
+    let s = task(play('mein-team-kann'), 'free')
+    s = ch.addNamed(' Nördlingen ')(ch.addNamed('nördlingen')(ch.addNamed('')(s)))
+    expect(run(s).named).toEqual(['nördlingen'])
+    s = ch.removeNamed('nördlingen')(ch.addNamed('Wemding')(s))
+    expect(run(s).named).toEqual(['Wemding'])
+  })
+
+  it('Zeit: Timer nacheinander, Summe muss länger sein als die Zielzeit', () => {
+    let s = task(play('mein-team-kann'), 'time', 3)
+    expect(run(s).timers).toHaveLength(3)
+    s = ch.setTarget(60_000)(s)
+    s = ch.startTimer(0, 1_000)(s)
+    expect(run(ch.startTimer(1, 2_000)(s)).timers[1].startedAt).toBeNull() // nur einer läuft
+    s = ch.stopTimer(21_000)(s)
+    s = ch.stopTimer(30_000)(ch.startTimer(1, 10_000)(s))
+    s = ch.startTimer(2, 40_000)(s)
+    expect(ch.progress(run(s), 60_000)).toBe(60_000)
+    expect(ch.reached(run(s), 60_000)).toBe(false) // genau die Zielzeit reicht nicht
+    expect(ch.reached(run(s), 60_001)).toBe(true)
+    s = ch.setTimer(0, 0)(s)
+    expect(run(s).timers[0]).toEqual({ ms: 0, startedAt: null })
+  })
+
+  it('Wertung als Finale: Punkte ergeben die Platzierung', () => {
+    let s = play('mein-team-kann')
+    const [a, b, c] = ids(s)
+    s = ch.decide(true)(ch.setTeam(a)(task(s, 'free')))
+    s = ch.decide(false)(ch.setTeam(a)(ch.startChallenge(1, 10, 'Zwei', { type: 'count' })(s)))
+    s = ch.adjustPoints(b, 1)(s)
+    expect(ch.challengeTotals(s)).toEqual({ [a]: 2, [b]: 2, [c]: 1 })
+    s = act.endPlay(ch.challengeTotals(s))(s)
+    expect(s.games.find((g) => g.id === 'mein-team-kann')?.result?.places).toEqual([[a, b], [c]])
+    expect(standings(s).map((r) => r.points)).toEqual([9, 9, 6]) // Finale zählt dreifach
   })
 })

@@ -3,6 +3,8 @@ import type { Game, State } from '../store/types'
 import type { GameKind } from './catalog'
 import EstimateHost from './estimate/EstimateHost'
 import EstimateScene from './estimate/EstimateScene'
+import ChallengeHost from './challenge/ChallengeHost'
+import ChallengeScene from './challenge/ChallengeScene'
 import CountdownHost from './countdown/CountdownHost'
 import CountdownScene from './countdown/CountdownScene'
 import MeasureHost from './measure/MeasureHost'
@@ -39,4 +41,5 @@ export const KINDS: Record<GameKind, KindModule> = {
   prompt: { label: 'Fragenrunde', Scene: PromptScene, Host: PromptHost, Editor: QuizEditor, dataLabel: 'Fragen' },
   estimate: { label: 'Schätzen', Scene: EstimateScene, Host: EstimateHost, Editor: QuizEditor, dataLabel: 'Fragen' },
   measure: { label: 'Messen', Scene: MeasureScene, Host: MeasureHost, Editor: QuizEditor, dataLabel: 'Objekte' },
+  challenge: { label: 'Aufgaben', Scene: ChallengeScene, Host: ChallengeHost, Editor: QuizEditor, dataLabel: 'Aufgaben' },
 }

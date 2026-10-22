@@ -24,7 +24,7 @@ export const IDEA_GAMES: IdeaGame[] = [
   { id: 'allgemeinwissen', goal: 40 },
   { id: 'schaetzfragen', goal: 30 },
   { id: 'scribble-rush', goal: 48, perRound: TERMS_PER_ROUND },
-  { id: 'mein-team-kann', label: 'Kategorie' },
+  { id: 'mein-team-kann' },
 ]
 
 /** Die Ideen eines Spiels liegen in derselben Tabelle wie die Fragen, unter eigenem Schlüssel; kein Spiel liest sie. */
@@ -60,13 +60,23 @@ export const copyEntry = (q: Question, patch: Partial<Question> = {}): Question 
     audioPath: q.audioPath ?? null,
     audioStart: q.audioStart ?? 0,
     ...(q.format ? { format: q.format } : {}),
+    ...(q.challenge ? { challenge: { ...q.challenge } } : {}),
     ...patch,
   })
 
-/** Die Spielliste aus den ⭐-Ideen: gleiche Reihenfolge, neue IDs, ohne Bewertung und Notiz. */
-export const starredToGame = (ideas: Question[]): Question[] => ideas.filter((q) => q.status === 'star').map((q) => copyEntry(q))
-
 const sameEntry = (a: Question, b: Question) => a.question.trim() === b.question.trim() && a.answer.trim() === b.answer.trim()
+
+/**
+ * Die Spielliste aus den ⭐-Ideen: gleiche Reihenfolge, neue IDs, ohne Bewertung und Notiz.
+ * Aufgaben, die im Spiel schon eingestellt sind (Baustein, Liste, Bilder), behalten ihre Einstellungen.
+ */
+export const starredToGame = (ideas: Question[], game: Question[] = []): Question[] =>
+  ideas
+    .filter((q) => q.status === 'star')
+    .map((q) => {
+      const set = !q.challenge ? game.find((g) => g.challenge && sameEntry(g, q)) : undefined
+      return copyEntry(set ? { ...q, challenge: set.challenge, hints: q.hints.length ? q.hints : set.hints } : q)
+    })
 
 /** Holt die Einträge einer Spielliste als ⭐ in die Sammlung; was dort schon steht, kommt nicht doppelt. */
 export function gameToIdeas(ideas: Question[], game: Question[]): Question[] {

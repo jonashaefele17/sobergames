@@ -32,7 +32,8 @@ Jedes Spiel mit eigener Seite startet im Spiele-Tab über **„Spiel starten“*
 |---|---|---|
 | Punktetafel | Last Cup Standing, Closest to the Edge | „Runde an Team X“, optional mit Zielpunktzahl |
 | Punktetafel | Arschbolzen | je Team 6 Versuche (änderbar), jeder einzeln mit 0 / 1 / 2 / 3 Punkten |
-| Punktetafel | Scribble Rush, Mein Team kann | Punkte je Team eintragen, „Runde buchen“ |
+| Punktetafel | Scribble Rush | Punkte je Team eintragen, „Runde buchen“ |
+| Aufgaben | Mein Team kann | Aufgaben im Setup anlegen („Aufgaben bearbeiten“), im Spiel Team und Ziel wählen, je nach Baustein zählen, abhaken, eintippen oder stoppen; siehe unten |
 | Stoppuhr | Ex oder zieh | je Team Start/Stopp, kürzeste Zeit gewinnt |
 | Countdown | Build it | Timer läuft groß auf dem Beamer, danach Werte eintragen |
 | Fragenrunde | Wer würde eher | Frage zeigen, je Team den Punkt antippen, eigene Fragenliste ohne Antworten |
@@ -70,6 +71,19 @@ Im Tab „Buzzer“ startet **„Probe starten“** eine Probefrage, die auf dem
 
 Die Schätzungen der anderen kann kein Handy lesen; auf den Beamer kommen sie erst beim Aufdecken.
 
+### Mein Team kann
+
+Jede Aufgabe hat einen **Baustein**, eingestellt im Setup unter „Aufgaben bearbeiten“:
+
+| Baustein | Beispiele | Im Spiel |
+|---|---|---|
+| Zählen | Liegestütze, Ball hochhalten | je Runde eine Anzahl; Runden = Spieler im spielenden Team − 1 (änderbar); geschafft, wenn die Summe das Ziel erreicht |
+| Aufzählen mit Liste | WM-Kader 2014, Länder in Afrika | Liste im Editor hinterlegen (eine Antwort pro Zeile); Genanntes abhaken. Umschaltbar: erst nur der Zähler und danach einzeln aufdecken oder sofort zeigen. Zum Schluss lassen sich die nicht genannten einblenden |
+| Aufzählen frei | Orte, an denen wir getrunken haben | Genanntes eintippen, erscheint sofort auf dem Beamer |
+| Zeit | Ja-Nein-Verbot, Nicht lachen | 1–6 Timer (im Editor), die Zeiten werden addiert; geschafft bei mehr als der Zielzeit. Optional Bilder aus `public/media/mein-team-kann/`, die du im Spiel durchklickst |
+
+Ablauf je Aufgabe: Aufgabe wählen → spielendes Team → Ziel eintragen und **„Ziel aufdecken“** (Reveal auf dem Beamer) → spielen → **„Geschafft“** (spielendes Team +2) oder **„Nicht geschafft“** (alle anderen +1). Das Regiepult schlägt die Wertung vor, sobald das Ziel erreicht ist; eine Wertung lässt sich zurücknehmen. Die Bausteine brauchen das Schema-Update (`supabase/schema.sql` erneut ausführen).
+
 ## Fragen sammeln
 
 `/#/sammeln` (Link unten im Regiepult) ist eine Sammlung fürs Handy, mit demselben Host-Login wie das Regiepult. Ideen liegen getrennt von den Fragen, die am Abend gespielt werden.
@@ -79,7 +93,7 @@ Die Schätzungen der anderen kann kein Handy lesen; auf den Beamer kommen sie er
 3. **„⭐ ins Spiel übernehmen“** ersetzt die Fragenliste des Spiels durch die ⭐ in ihrer Reihenfolge. Danach stehen im Spiel nur die Sterne. Was im Regiepult-Editor nachträglich geändert wurde, überschreibt das nächste Übernehmen; Fragen deshalb in der Sammlung pflegen.
 4. Einmalig holt **„Fragen aus dem Spiel in die Sammlung holen“** bestehende Einträge als ⭐ in die Sammlung.
 
-„Mein Team kann“ hat keine Fragenliste im Regiepult; dort sind die ⭐ der Spickzettel für den Abend.
+Bei „Mein Team kann“ behalten Aufgaben, die im Regiepult-Editor schon einen Baustein, eine Liste oder Bilder haben, diese Einstellungen beim Übernehmen.
 
 **Scribble Rush** (Ziel 48 Begriffe = 4 Runden): Die Reihenfolge der ⭐ ergibt die Runden, 1–12 ist Runde 1, 13–24 Runde 2 usw.; mit dem Filter ⭐ stehen die Runden als Zwischenüberschriften in der Liste. Nach dem Übernehmen druckt **„Drucken / PDF“** je Runde eine A4-Seite im Querformat mit den 12 nummerierten Kästchen und ihren Begriffen (im Druckdialog „Als PDF speichern“ wählen). Oben umschaltbar auf das **Spielerblatt**: 4 Seiten mit denselben 12 Kästchen leer zum Zeichnen, darunter je ein Streifen für die Antwort des Teams und ein Häkchenfeld für die Auswertung.
 

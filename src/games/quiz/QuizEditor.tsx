@@ -8,6 +8,8 @@ import { parseQuestions } from './parse'
 import { newQuestion, questionStore, type Hint, type Question } from './questionStore'
 import { ANSWER_FORMATS, detectFormat, parseAnswer } from '../estimate/logic'
 import AnswerInput from '../estimate/AnswerInput'
+import { CHALLENGE_TYPES } from '../challenge/logic'
+import type { ChallengeType } from '../../store/types'
 import { SAMPLE_ESTIMATES, SAMPLE_PROMPTS, SAMPLE_QUESTIONS } from './samples'
 
 const pad = (n: number) => String(n).padStart(2, '0')
@@ -93,8 +95,9 @@ export default function QuizEditor({ gameId, onClose }: { gameId: string; onClos
   const answerOnly = Boolean(def.quiz?.answerOnly)
   const numeric = Boolean(def.quiz?.numeric)
   const withAudio = Boolean(def.quiz?.audio)
+  const challenge = Boolean(def.quiz?.challenge)
   // mit Hinweisen ersetzt deren Liste das einzelne Bild
-  const singleImage = !plainList && !withHints && !withAudio
+  const singleImage = !plainList && !withHints && !withAudio && !challenge
   const [questions, setQuestions] = useState<Question[] | null>(null)
   const [paste, setPaste] = useState('')
   const [save, setSave] = useState<SaveState>('idle')
@@ -231,7 +234,7 @@ export default function QuizEditor({ gameId, onClose }: { gameId: string; onClos
             Alle ersetzen
           </button>
           <span className="grow" />
-          {!plainList && !answerOnly && <button onClick={loadSamples}>Beispielfragen laden</button>}
+          {!plainList && !answerOnly && !challenge && <button onClick={loadSamples}>Beispielfragen laden</button>}
         </div>
       </section>
 
@@ -291,6 +294,7 @@ export default function QuizEditor({ gameId, onClose }: { gameId: string; onClos
               <input className="grow" value={q.info} placeholder={numeric ? 'Einheit, z. B. Meter (für alle sichtbar)' : 'Zusatzinfo (optional)'} onChange={(e) => update(q.id, { info: e.target.value })} />
             </div>
           )}
+          {challenge && <ChallengeFields q={q} onChange={(patch) => update(q.id, patch)} onPickImage={() => setPicking({ questionId: q.id, target: 'hint' })} />}
           {withHints && (
             <div className="hint-list">
               <div className="hint">Hinweise in der Reihenfolge, in der sie aufgedeckt werden. Der erste erscheint sofort.</div>
@@ -369,6 +373,74 @@ export default function QuizEditor({ gameId, onClose }: { gameId: string; onClos
 
       {picking && (
         <MediaPicker gameId={gameId} kind={picking.target === 'audio' ? 'audio' : 'image'} used={used} onPick={pick} onClose={() => setPicking(null)} />
+      )}
+    </div>
+  )
+}
+
+/** Mein Team kann: Baustein einer Aufgabe und was er braucht (Antwortliste, Timer, Bilder) */
+function ChallengeFields({ q, onChange, onPickImage }: { q: Question; onChange: (patch: Partial<Question>) => void; onPickImage: () => void }) {
+  const config = q.challenge ?? { type: 'count' as const }
+  const texts = q.hints.filter((h) => h.kind === 'text')
+  const images = q.hints.filter((h) => h.kind === 'image')
+  // die Liste als Text; Leerzeilen bleiben beim Tippen stehen und fallen erst beim Speichern als Eintrag weg
+  const [draft, setDraft] = useState(() => texts.map((h) => h.value).join('\n'))
+
+  const setList = (text: string) => {
+    setDraft(text)
+    const lines = text
+      .split('\n')
+      .map((l) => l.trim())
+      .filter(Boolean)
+    onChange({ hints: [...lines.map((value, i) => ({ id: texts[i]?.id ?? crypto.randomUUID(), kind: 'text' as const, value })), ...images] })
+  }
+
+  return (
+    <div className="hint-list">
+      <div className="row tight">
+        <span className="grow hint">Baustein</span>
+        <select value={config.type} aria-label="Baustein der Aufgabe" onChange={(e) => onChange({ challenge: { ...config, type: e.target.value as ChallengeType } })}>
+          {CHALLENGE_TYPES.map(([key, text]) => (
+            <option key={key} value={key}>
+              {text}
+            </option>
+          ))}
+        </select>
+      </div>
+      {config.type === 'count' && <div className="hint">Runden: Spieler im spielenden Team − 1, im Spiel änderbar. Geschafft, wenn die Summe das Ziel erreicht.</div>}
+      {config.type === 'free' && <div className="hint">Keine feste Liste: Das Genannte tippst du im Spiel ein.</div>}
+      {config.type === 'list' && (
+        <>
+          <div className="hint">Alle richtigen Antworten, eine pro Zeile ({texts.length})</div>
+          <textarea rows={6} value={draft} placeholder={'Manuel Neuer\nPhilipp Lahm\n…'} onChange={(e) => setList(e.target.value)} />
+        </>
+      )}
+      {config.type === 'time' && (
+        <>
+          <div className="row tight value-row">
+            <span className="grow hint">Timer (Zeiten werden addiert, geschafft bei mehr als der Zielzeit)</span>
+            <input
+              type="number"
+              min={1}
+              max={6}
+              value={config.timers ?? 1}
+              onChange={(e) => onChange({ challenge: { ...config, timers: Math.min(6, Math.max(1, Number(e.target.value) || 1)) } })}
+            />
+          </div>
+          <div className="hint">Bilder, die du im Spiel nacheinander zeigen kannst (optional)</div>
+          {images.map((h) => (
+            <div key={h.id} className="row tight">
+              <Thumb path={h.value} />
+              <span className="grow hint file-name">{h.value.split('/').pop()}</span>
+              <button className="arrow" aria-label="Bild entfernen" onClick={() => onChange({ hints: q.hints.filter((x) => x.id !== h.id) })}>
+                ✕
+              </button>
+            </div>
+          ))}
+          <div className="row">
+            <button onClick={onPickImage}>+ Bild</button>
+          </div>
+        </>
       )}
     </div>
   )

@@ -23,6 +23,16 @@ describe('Sammlung', () => {
     expect(game[0]).not.toHaveProperty('note')
   })
 
+  it('Übernehmen behält die im Spiel eingestellten Aufgaben (Baustein, Liste)', () => {
+    const ideas = [newQuestion({ question: 'WM-Kader 2014', status: 'star' }), newQuestion({ question: 'Neu', status: 'star' })]
+    const game = [newQuestion({ question: 'WM-Kader 2014', challenge: { type: 'list' }, hints: [{ id: 'h', kind: 'text', value: 'Neuer' }] })]
+    const next = starredToGame(ideas, game)
+    expect(next[0].challenge).toEqual({ type: 'list' })
+    expect(next[0].hints.map((h) => h.value)).toEqual(['Neuer'])
+    expect(next[0].hints[0].id).not.toBe('h')
+    expect(next[1].challenge).toBeUndefined()
+  })
+
   it('Spielfragen holen: als ⭐ hinten an, ohne Doppelte', () => {
     const ideas = [newQuestion({ question: 'A', answer: '1', status: 'maybe' })]
     const merged = gameToIdeas(ideas, [newQuestion({ question: 'A', answer: '1' }), newQuestion({ question: 'B', answer: '2' })])
@@ -104,6 +114,24 @@ describe('Fragen-Datei', () => {
     expect(describeQuestionExport(read)).toContain('Allgemeinwissen: 1 im Spiel, 2 in der Sammlung')
     expect(describeQuestionExport(read)).toContain('Mein Team kann: 1 in der Sammlung')
     expect(describeQuestionExport(parseQuestionExport('{"version":1,"content":{"schaetzfragen":[]}}'))).toContain('Leer (wird geleert): Schätzfragen')
+  })
+
+  it('Aufgaben von Mein Team kann behalten Baustein und Liste', () => {
+    const read = parseQuestionExport(
+      JSON.stringify({
+        version: 1,
+        content: {
+          'mein-team-kann': [
+            { question: 'Länder', challenge: { type: 'list' }, hints: [{ kind: 'text', value: 'Ghana' }] },
+            { question: 'Ja-Nein', challenge: { type: 'time', timers: 3.2 } },
+            { question: 'Kaputt', challenge: { type: 'quatsch' } },
+          ],
+        },
+      }),
+    )
+    expect(read.content['mein-team-kann'].map((q) => q.challenge)).toEqual([{ type: 'list' }, { type: 'time', timers: 3 }, undefined])
+    expect(read.content['mein-team-kann'][0].hints[0]).toMatchObject({ kind: 'text', value: 'Ghana' })
+    expect(read.ideas).toEqual({})
   })
 
   it('nimmt von einer kompletten Sicherung nur die Fragen', () => {

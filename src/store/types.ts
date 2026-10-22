@@ -110,6 +110,68 @@ export interface PlayData {
   estimate?: EstimateData
   /** Scribble Rush: Auflösung einer Runde auf dem Beamer; fehlt oder null = Punktetafel */
   terms?: TermsView | null
+  challenge?: ChallengeData
+}
+
+/**
+ * Bausteine der Aufgaben bei „Mein Team kann“:
+ * - count: mehrere Runden, je Runde eine Anzahl (Liegestütze, Ball hochhalten)
+ * - list: Aufzählen aus einer hinterlegten Liste (WM-Kader, Länder)
+ * - free: Aufzählen ohne Liste, das Genannte wird eingetippt
+ * - time: Zeit gegen eine Zielzeit, ein oder mehrere Timer, optional Bilder
+ */
+export type ChallengeType = 'count' | 'list' | 'free' | 'time'
+
+/** Einstellungen einer Aufgabe; die Antwortliste bzw. die Bilder liegen in den Hinweisen des Eintrags */
+export interface ChallengeConfig {
+  type: ChallengeType
+  /** time: so viele Timer, deren Zeiten addiert werden */
+  timers?: number
+}
+
+export interface ChallengeTimer {
+  /** bis zum letzten Stopp gelaufene Zeit */
+  ms: number
+  /** Zeitpunkt des Starts, solange er läuft */
+  startedAt: number | null
+}
+
+/** Die Aufgabe, die gerade gespielt wird */
+export interface ChallengeRun {
+  /** Platz in der Aufgabenliste (0-basiert) */
+  index: number
+  total: number
+  type: ChallengeType
+  title: string
+  /** das spielende Team */
+  teamId: string | null
+  /** Zielzahl bzw. Zielzeit in ms */
+  target: number | null
+  /** Ziel auf dem Beamer aufgedeckt */
+  targetShown: boolean
+  /** count: Anzahl je Runde */
+  counts: (number | null)[]
+  /** time: die Timer */
+  timers: ChallengeTimer[]
+  /** list, free: das Genannte in der Reihenfolge des Nennens */
+  named: string[]
+  /** list: auf dem Beamer aufgedeckt (außer live, dann alles Genannte) */
+  revealed: string[]
+  /** list: jedes Genannte erscheint sofort */
+  live: boolean
+  /** list: zum Schluss gezeigt, was keiner genannt hat */
+  missed: string[] | null
+  /** time: Bild auf dem Beamer */
+  image: string | null
+  verdict: 'won' | 'lost' | null
+}
+
+export interface ChallengeData {
+  current: ChallengeRun | null
+  /** Punkte je Aufgabe (Index) und Team, dazu Korrekturen von Hand */
+  points: Record<string, Record<string, number>>
+  /** Ausgang je Aufgabe (Index) für die Übersicht */
+  results: Record<string, { teamId: string; won: boolean }>
 }
 
 /** Die Begriffe einer Runde im Raster; nur die schon aufgedeckten stehen hier drin. */
