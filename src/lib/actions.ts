@@ -315,12 +315,12 @@ export const focusHint = (index: number) => (s: State): State => {
   return { ...s, play: { ...s.play, quiz: { ...quiz, hintFocus: index } } }
 }
 
-export const revealAnswer = (answer: string, info: string | null) => (s: State): State =>
-  s.play.quiz ? { ...s, play: { ...s.play, quiz: { ...s.play.quiz, answer, info, phase: 'answer' } } } : s
+export const revealAnswer = (answer: string, info: string | null, answerImageUrl: string | null = null) => (s: State): State =>
+  s.play.quiz ? { ...s, play: { ...s.play, quiz: { ...s.play.quiz, answer, info, answerImageUrl, phase: 'answer' } } } : s
 
 /** Antwort wieder ausblenden, die Frage läuft weiter (z. B. nach versehentlichem „Richtig“). */
 export const reopenQuestion = (s: State): State =>
-  s.play.quiz ? { ...s, play: { ...s.play, quiz: { ...s.play.quiz, answer: null, info: null, phase: 'question' } } } : s
+  s.play.quiz ? { ...s, play: { ...s.play, quiz: { ...s.play.quiz, answer: null, info: null, answerImageUrl: null, phase: 'question' } } } : s
 
 /** Beendet das Spiel: Rundenpunkte werden zur Platzierung, danach die Tabelle. */
 export const endPlay = (scores: Record<string, number>) => (s: State): State => {

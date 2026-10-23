@@ -84,6 +84,15 @@ describe('Quiz-Ablauf', () => {
     const s = act.initialState()
     expect(act.revealAnswer('x', null)(s)).toBe(s)
   })
+
+  it('Bild zur Antwort kommt erst mit der Auflösung und geht beim Zurücknehmen wieder', () => {
+    let s = act.showQuestion({ index: 0, total: 1, text: 'Welche Flagge?', imageUrl: 'media/allgemeinwissen/frage.png' })(act.startPlay('allgemeinwissen')(act.initialState()))
+    expect(s.play.quiz?.answerImageUrl).toBeFalsy()
+    s = act.revealAnswer('Südkorea', null, 'media/allgemeinwissen/antwort.png')(s)
+    expect(s.play.quiz).toMatchObject({ phase: 'answer', answerImageUrl: 'media/allgemeinwissen/antwort.png' })
+    s = act.reopenQuestion(s)
+    expect(s.play.quiz).toMatchObject({ phase: 'question', answerImageUrl: null })
+  })
 })
 
 describe('Timer', () => {

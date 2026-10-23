@@ -56,7 +56,9 @@ export default function QuizHost({ state, game }: { state: State; game: Game }) 
     if (hint.kind === 'text') return { kind: 'text', value: hint.value }
     const url = mediaUrl(hint.value)
     if (!url) setError('Ein Hinweis-Bild liegt nicht im Medienordner und wird übersprungen')
-    return url ? { kind: 'image', value: url } : null
+    const reveal = mediaUrl(hint.reveal)
+    if (hint.reveal && !reveal) setError('Ein Auflösungsbild liegt nicht im Medienordner')
+    return url ? { kind: 'image', value: url, ...(reveal ? { reveal } : {}) } : null
   }
 
   const show = (i: number) => {
@@ -95,7 +97,10 @@ export default function QuizHost({ state, game }: { state: State; game: Game }) 
 
   /** zeigt die Antwort; ein Song läuft dabei von vorn und spielt durch */
   const reveal = () => {
-    if (current) run((s) => act.cueAudio('full')(act.revealAnswer(current.answer, current.info || null)(s)))
+    if (!current) return
+    const image = mediaUrl(current.answerImagePath)
+    if (current.answerImagePath && !image) setError('Das Bild zur Antwort liegt nicht im Medienordner')
+    run((s) => act.cueAudio('full')(act.revealAnswer(current.answer, current.info || null, image)(s)))
   }
 
   /** Antwort wieder verdecken, die Musik dazu stoppt */

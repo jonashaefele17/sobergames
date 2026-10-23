@@ -44,6 +44,8 @@ export interface AudioCue {
 export interface ShownHint {
   kind: 'image' | 'text'
   value: string
+  /** URL des Bildes, das nach der Auflösung statt value gezeigt wird */
+  reveal?: string
 }
 
 /** Was der Beamer von der aktuellen Quiz-Frage zeigt; Antwort erst nach der Auflösung. */
@@ -65,6 +67,8 @@ export interface QuizView {
   audio?: AudioCue
   answer: string | null
   info: string | null
+  /** Bild zur Antwort; wie die Antwort erst nach der Auflösung gesetzt */
+  answerImageUrl?: string | null
   phase: 'question' | 'answer'
 }
 

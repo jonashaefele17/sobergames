@@ -57,6 +57,7 @@ export const copyEntry = (q: Question, patch: Partial<Question> = {}): Question 
     answer: q.answer,
     info: q.info,
     imagePath: q.imagePath,
+    ...(q.answerImagePath ? { answerImagePath: q.answerImagePath } : {}),
     hints: q.hints.map((h) => ({ ...h, id: crypto.randomUUID() })),
     audioPath: q.audioPath ?? null,
     audioStart: q.audioStart ?? 0,

@@ -8,7 +8,7 @@ import { signOutHost, useHostSession } from '../lib/hostAuth'
 import Login from '../host/Login'
 import { gameDef } from '../games/catalog'
 import { mediaUrl } from '../games/common/media'
-import { ChallengeFields, MediaPicker, Thumb } from '../games/quiz/QuizEditor'
+import { ChallengeFields, MediaPicker, RevealSlot, Thumb } from '../games/quiz/QuizEditor'
 import { typeLabel } from '../games/challenge/logic'
 import { newQuestion, questionStore, type Hint, type Question } from '../games/quiz/questionStore'
 import { ANSWER_FORMATS, detectFormat, formatAnswer, parseAnswer, type AnswerFormat } from '../games/estimate/logic'
@@ -270,7 +270,7 @@ function QuickAdd({ gameId, onAdd }: { gameId: string; onAdd: (qs: Question[]) =
   )
 }
 
-type Picking = 'image' | 'hint' | 'audio' | null
+type Picking = 'image' | 'answerImage' | 'hint' | 'audio' | { reveal: string } | null
 
 /** Eingabe einer Idee mit genau den Feldern, die das Spiel braucht */
 function IdeaSheet({
@@ -306,9 +306,12 @@ function IdeaSheet({
     ;[hints[index - 1], hints[index]] = [hints[index], hints[index - 1]]
     setHints(hints)
   }
+  const setReveal = (hintId: string, reveal: string | undefined) => setHints(q.hints.map((h) => (h.id === hintId ? { ...h, reveal } : h)))
   const pick = (path: string) => {
     if (picking === 'image') update({ imagePath: path })
+    else if (picking === 'answerImage') update({ answerImagePath: path })
     else if (picking === 'audio') update({ audioPath: path })
+    else if (typeof picking === 'object' && picking) setReveal(picking.reveal, path)
     else setHints([...q.hints, { id: crypto.randomUUID(), kind: 'image', value: path }])
     setPicking(null)
   }
@@ -379,6 +382,7 @@ function IdeaSheet({
                 <>
                   <Thumb path={h.value} />
                   <span className="grow hint file-name">{h.value.split('/').pop()}</span>
+                  <RevealSlot path={h.reveal} onPick={() => setPicking({ reveal: h.id })} onClear={() => setReveal(h.id, undefined)} />
                 </>
               ) : (
                 <input className="grow" value={h.value} placeholder="Text-Hinweis" onChange={(e) => setHints(q.hints.map((x) => (x.id === h.id ? { ...x, value: e.target.value } : x)))} />
@@ -434,6 +438,13 @@ function IdeaSheet({
           {q.imagePath && <Thumb path={q.imagePath} />}
           <button onClick={() => setPicking('image')}>{q.imagePath ? 'Bild ändern' : 'Bild wählen (optional)'}</button>
           {q.imagePath && <button onClick={() => update({ imagePath: null })}>Bild entfernen</button>}
+        </div>
+      )}
+      {singleImage && !quiz?.numeric && (
+        <div className="row">
+          {q.answerImagePath && <Thumb path={q.answerImagePath} />}
+          <button onClick={() => setPicking('answerImage')}>{q.answerImagePath ? 'Auflösungsbild ändern' : 'Bild zur Auflösung (optional)'}</button>
+          {q.answerImagePath && <button onClick={() => update({ answerImagePath: null })}>Auflösungsbild entfernen</button>}
         </div>
       )}
 
@@ -538,7 +549,7 @@ function CollectPage({ local }: { local: boolean }) {
   const visible = list.filter(matches(filter))
   const stars = countStatus(list, 'star')
   const label = itemLabel(gameId)
-  const used = new Set(list.flatMap((q) => [q.imagePath, q.audioPath, ...q.hints.filter((h) => h.kind === 'image').map((h) => h.value)]).filter((p): p is string => Boolean(p)))
+  const used = new Set(list.flatMap((q) => [q.imagePath, q.answerImagePath, q.audioPath, ...q.hints.filter((h) => h.kind === 'image').flatMap((h) => [h.value, h.reveal])]).filter((p): p is string => Boolean(p)))
 
   const change = (fn: (qs: Question[]) => Question[]) => {
     dirty.current.add(gameId)

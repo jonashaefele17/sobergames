@@ -97,13 +97,14 @@ function readEntry(raw: unknown, idea: boolean): Question | null {
   const hints: Hint[] = Array.isArray(r.hints)
     ? r.hints
         .filter((h): h is Record<string, unknown> => typeof h === 'object' && h !== null && (h.kind === 'image' || h.kind === 'text'))
-        .map((h) => ({ id: crypto.randomUUID(), kind: h.kind as Hint['kind'], value: text(h.value) }))
+        .map((h) => ({ id: crypto.randomUUID(), kind: h.kind as Hint['kind'], value: text(h.value), ...(text(h.reveal) ? { reveal: text(h.reveal) } : {}) }))
     : []
   const q = newQuestion({
     question: text(r.question),
     answer: text(r.answer),
     info: text(r.info),
     imagePath: typeof r.imagePath === 'string' ? r.imagePath : null,
+    ...(typeof r.answerImagePath === 'string' ? { answerImagePath: r.answerImagePath } : {}),
     hints,
     audioPath: typeof r.audioPath === 'string' ? r.audioPath : null,
     audioStart: typeof r.audioStart === 'number' && r.audioStart > 0 ? r.audioStart : 0,

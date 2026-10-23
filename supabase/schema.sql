@@ -216,6 +216,9 @@ alter table public.sobergames_questions add column if not exists format text not
 -- Mein Team kann: Baustein der Aufgabe, z. B. {"type": "time", "timers": 3}; leer = keine Aufgabe
 alter table public.sobergames_questions add column if not exists challenge jsonb;
 
+-- Bild, das erst mit der Antwort erscheint (Pfad im Medienordner)
+alter table public.sobergames_questions add column if not exists answer_image_path text;
+
 create index if not exists sobergames_questions_game on public.sobergames_questions (game_id, position);
 
 alter table public.sobergames_questions enable row level security;

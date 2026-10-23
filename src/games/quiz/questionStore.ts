@@ -8,6 +8,8 @@ export interface Hint {
   id: string
   kind: 'image' | 'text'
   value: string
+  /** nur bei Bildern: Bild, das bei der Auflösung an diese Stelle tritt (z. B. rausgezoomt) */
+  reveal?: string
 }
 
 export interface Question {
@@ -18,6 +20,8 @@ export interface Question {
   info: string
   /** Pfad eines Bildes im Medienordner */
   imagePath: string | null
+  /** Pfad eines Bildes, das erst mit der Antwort erscheint (bzw. das Bild der Frage ersetzt) */
+  answerImagePath?: string | null
   /** weitere Hinweise, die nacheinander aufgedeckt werden */
   hints: Hint[]
   /** Pfad eines Songs im Medienordner */
@@ -64,6 +68,7 @@ interface Row {
   answer: string
   info: string
   image_path: string | null
+  answer_image_path?: string | null
   hints?: Hint[] | null
   audio_path?: string | null
   audio_start?: number | null
@@ -87,6 +92,7 @@ const supabaseStore: QuestionStore = {
       answer: r.answer,
       info: r.info,
       imagePath: r.image_path,
+      ...(r.answer_image_path ? { answerImagePath: r.answer_image_path } : {}),
       hints: r.hints ?? [],
       audioPath: r.audio_path ?? null,
       audioStart: r.audio_start ?? 0,
@@ -105,6 +111,7 @@ const supabaseStore: QuestionStore = {
     // gesetzt wird das Format nur bei Schätzfragen, dort auch „number“, damit ein Zurückstellen gespeichert wird
     const withFormat = questions.some((q) => q.format !== undefined)
     const withChallenge = questions.some((q) => q.challenge)
+    const withAnswerImage = withIdea || questions.some((q) => q.answerImagePath)
     const rows = questions.map((q, position) => ({
       id: q.id,
       game_id: gameId,
@@ -120,6 +127,7 @@ const supabaseStore: QuestionStore = {
       ...(withIdea ? { status: q.status ?? '', note: q.note ?? '' } : {}),
       ...(withFormat ? { format: q.format ?? '' } : {}),
       ...(withChallenge ? { challenge: q.challenge ?? null } : {}),
+      ...(withAnswerImage ? { answer_image_path: q.answerImagePath ?? null } : {}),
     }))
     if (rows.length) {
       const { error } = await supabase!.from(TABLE).upsert(rows)

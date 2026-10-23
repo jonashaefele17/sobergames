@@ -27,6 +27,23 @@ export function Thumb({ path }: { path: string }) {
   )
 }
 
+/** optionales Auflösungsbild eines Bild-Hinweises: erscheint statt des Hinweises, sobald aufgelöst ist */
+export function RevealSlot({ path, onPick, onClear }: { path?: string; onPick: () => void; onClear: () => void }) {
+  return path ? (
+    <>
+      <span className="hint" title={`Bei der Auflösung: ${path.split('/').pop()}`}>→</span>
+      <Thumb path={path} />
+      <button className="arrow" aria-label="Auflösungsbild entfernen" onClick={onClear}>
+        ✕
+      </button>
+    </>
+  ) : (
+    <button title="Bild, das bei der Auflösung an diese Stelle tritt, z. B. rausgezoomt" onClick={onPick}>
+      + Auflösung
+    </button>
+  )
+}
+
 /** Auswahl eines Bildes aus dem Medienordner des Spiels; noch nicht verwendete stehen oben. */
 export function MediaPicker({
   gameId,
@@ -82,7 +99,7 @@ export function MediaPicker({
 }
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error'
-type Picking = { questionId: string; target: 'image' | 'hint' | 'audio' } | null
+type Picking = { questionId: string; target: 'image' | 'answerImage' | 'hint' | 'audio' } | { questionId: string; target: 'reveal'; hintId: string } | null
 
 /** Vollbild-Editor im Regiepult für die eigenen Inhalte eines Spiels. Speichert automatisch. */
 export default function QuizEditor({ gameId, onClose }: { gameId: string; onClose: () => void }) {
@@ -98,6 +115,8 @@ export default function QuizEditor({ gameId, onClose }: { gameId: string; onClos
   const challenge = Boolean(def.quiz?.challenge)
   // mit Hinweisen ersetzt deren Liste das einzelne Bild
   const singleImage = !plainList && !withHints && !withAudio && !challenge
+  // Bild zur Antwort nur bei Quizfragen; Schätzfragen haben ihre eigene Auflösung
+  const answerImage = singleImage && !noAnswer && !numeric
   const [questions, setQuestions] = useState<Question[] | null>(null)
   const [paste, setPaste] = useState('')
   const [save, setSave] = useState<SaveState>('idle')
@@ -171,10 +190,15 @@ export default function QuizEditor({ gameId, onClose }: { gameId: string; onClos
     update(q.id, { hints })
   }
 
+  const setReveal = (questionId: string, hintId: string, reveal: string | undefined) =>
+    change((qs) => qs.map((x) => (x.id === questionId ? { ...x, hints: x.hints.map((h) => (h.id === hintId ? { ...h, reveal } : h)) } : x)))
+
   const pick = (path: string) => {
     if (!picking) return
     if (picking.target === 'image') update(picking.questionId, { imagePath: path })
+    else if (picking.target === 'answerImage') update(picking.questionId, { answerImagePath: path })
     else if (picking.target === 'audio') update(picking.questionId, { audioPath: path })
+    else if (picking.target === 'reveal') setReveal(picking.questionId, picking.hintId, path)
     else addHint(picking.questionId, { kind: 'image', value: path })
     setPicking(null)
   }
@@ -193,7 +217,7 @@ export default function QuizEditor({ gameId, onClose }: { gameId: string; onClos
   }
 
   const parsedCount = paste.trim() ? parseQuestions(paste, answerOnly).length : 0
-  const used = new Set((questions ?? []).flatMap((q) => [q.imagePath, q.audioPath, ...q.hints.filter((h) => h.kind === 'image').map((h) => h.value)]).filter((p): p is string => Boolean(p)))
+  const used = new Set((questions ?? []).flatMap((q) => [q.imagePath, q.answerImagePath, q.audioPath, ...q.hints.filter((h) => h.kind === 'image').flatMap((h) => [h.value, h.reveal])]).filter((p): p is string => Boolean(p)))
   const format = answerOnly ? `${label} | Zusatzinfo` : noAnswer ? label : `${label} | Antwort | Zusatzinfo`
 
   return (
@@ -305,6 +329,11 @@ export default function QuizEditor({ gameId, onClose }: { gameId: string; onClos
                     <>
                       <Thumb path={h.value} />
                       <span className="grow hint file-name">{h.value.split('/').pop()}</span>
+                      <RevealSlot
+                        path={h.reveal}
+                        onPick={() => setPicking({ questionId: q.id, target: 'reveal', hintId: h.id })}
+                        onClear={() => setReveal(q.id, h.id, undefined)}
+                      />
                     </>
                   ) : (
                     <input
@@ -362,6 +391,13 @@ export default function QuizEditor({ gameId, onClose }: { gameId: string; onClos
               <button onClick={() => setPicking({ questionId: q.id, target: 'image' })}>{q.imagePath ? 'Bild ändern' : 'Bild wählen'}</button>
             )}
             {singleImage && q.imagePath && <button onClick={() => update(q.id, { imagePath: null })}>Bild entfernen</button>}
+            {answerImage && q.answerImagePath && <Thumb path={q.answerImagePath} />}
+            {answerImage && (
+              <button title="erscheint erst mit der Antwort" onClick={() => setPicking({ questionId: q.id, target: 'answerImage' })}>
+                {q.answerImagePath ? 'Auflösungsbild ändern' : '+ Auflösungsbild'}
+              </button>
+            )}
+            {answerImage && q.answerImagePath && <button onClick={() => update(q.id, { answerImagePath: null })}>Auflösungsbild entfernen</button>}
             <span className="grow" />
             <button className="danger" onClick={() => remove(q)}>
               Löschen
