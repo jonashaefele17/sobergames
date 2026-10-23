@@ -5,6 +5,8 @@
   inset: 0;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
+  /* feste Zeilenhöhe, damit Bilder sich an der Bühne und nicht an ihrer eigenen Größe messen */
+  grid-template-rows: minmax(0, 1fr);
   align-items: center;
   gap: calc(var(--u) * 3);
 }
@@ -24,6 +26,7 @@
   height: 100%;
   min-height: 0;
   display: grid;
+  grid-template: minmax(0, 1fr) / minmax(0, 1fr);
   place-items: center;
 }
 
